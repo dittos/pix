@@ -1,0 +1,65 @@
+{% extends "_base.html" %}
+
+{% block content %}
+<div class="row">
+    <div class="col-md-auto sidebar">
+        <ul class="tag-list">
+            <li class="tag-list-item">
+                <a href="/">new</a>
+            </li>
+            {% for tag, count in tags %}
+            <li class="tag-list-item">
+                <a href="?tag={{tag|urlencode}}">{{tag}}</a>
+                <span class="tag-list-item-tag-count">{{count}}</span>
+            </li>
+            {% endfor %}
+        </ul>
+    </div>
+
+    <div class="col content">
+        {% if selected_tag %}
+        <h1>{{selected_tag}}</h1>
+        {% endif %}
+        <p>total {{count}} images</p>
+
+        <div class="image-grid">
+        {% for image in images %}
+            <div class="image-grid-item">
+                <a href="#" data-bs-toggle="popover" data-bs-content-element='[data-image-id="{{image.id}}"]'>
+                    <img src="{{image.content.source_url}}">
+                </a>
+            </div>
+        {% endfor %}
+        </div>
+
+        {% for image in images %}
+        <div class="image-info-popover" data-image-id="{{image.id}}" style="display: none">
+            {% for tag in image.content.tags | sort(reverse=True, attribute="score") %}
+                <a href="?tag={{tag.tag|urlencode}}">{{tag.tag}}</a> {{"%.3f" % tag.score}}<br>
+            {% endfor %}
+        </div>
+        {% endfor %}
+
+        <ul class="pagination justify-content-center">
+            {% if page > 1 %}
+            <li class="page-item">
+                <a class="page-link" href="?page={{page - 1}}">&larr; prev</a>
+            </li>
+            {% endif %}
+            
+            <li class="page-item">
+                <a class="page-link" href="?page={{page + 1}}">next &rarr;</a>
+            </li>
+        </div>
+    </div>
+</div>
+
+<script>
+const popoverTriggerList = document.querySelectorAll('[data-bs-toggle="popover"]')
+const popoverList = [...popoverTriggerList].map(popoverTriggerEl => new bootstrap.Popover(popoverTriggerEl, {
+    content: document.querySelector(popoverTriggerEl.getAttribute('data-bs-content-element')).innerHTML,
+    html: true,
+    trigger: 'hover focus'
+}))
+</script>
+{% endblock %}

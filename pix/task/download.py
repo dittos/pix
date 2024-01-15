@@ -1,12 +1,11 @@
 import datetime
-from typing import List, Union
+from typing import List, Tuple, Union
 import requests
 import re
 import time
 from urllib.parse import unquote
 
 from bs4 import BeautifulSoup
-from pix.app import create_graph
 
 from pix.config import Settings
 from pix.model.image import Image, ImageRepo
@@ -14,7 +13,7 @@ from pix.model.tweet import Attachment, Tweet, TweetRepo
 from pixdb.db import Database
 
 
-class Download:
+class DownloadTask:
     def __init__(
             self,
             settings: Settings,
@@ -27,7 +26,7 @@ class Download:
         self.tweet_repo = tweet_repo
         self.image_repo = image_repo
 
-    def handle(self, pages: Union[int, None]):
+    def handle(self, pages: Union[int, None] = None):
         tweets = self._get_new_tweets(pages)
         tweets.reverse()  # to save old likes first
         attachments = self._download_images(tweets)
@@ -35,17 +34,18 @@ class Download:
         with self.db.transactional():
             for tweet in tweets:
                 self.tweet_repo.put(tweet.id, tweet)
-            for attachment in attachments:
+            for tweet, attachment in attachments:
                 image = Image(
                     local_filename=attachment.make_local_filename(),
                     collected_at=datetime.datetime.now(tz=datetime.timezone.utc),
                     source_url=attachment.url,
-                    tweet_id=attachment.tweet_id,
+                    tweet_id=tweet.id,
+                    tweet_username=tweet.username,
                 )
                 image_id = "tw." + image.local_filename.rsplit(".", 1)[0]
                 self.image_repo.put(image_id, image)
 
-    def _get_new_tweets(self, pages: Union[int, None]):
+    def _get_new_tweets(self, pages: Union[int, None] = None):
         first_page = f"{self.settings.nitter_host}/{self.settings.twitter_username}/favorites"
         page = first_page
         result = []
@@ -78,7 +78,7 @@ class Download:
         
         return result
 
-    def _download_images(self, tweets: List[Tweet]) -> List[Attachment]:
+    def _download_images(self, tweets: List[Tweet]) -> List[Tuple[Tweet, Attachment]]:
         result = []
         for tweet in tweets:
             for attachment in tweet.attachments:
@@ -92,7 +92,7 @@ class Download:
                     #     continue
                     r.raise_for_status()
                     download_path.write_bytes(r.content)
-                result.append(attachment)
+                result.append((tweet, attachment))
         return result
 
 
@@ -102,6 +102,9 @@ def _extract_tweets(doc: BeautifulSoup) -> List[Tweet]:
         link_el = item.select_one(".tweet-link")
         if not link_el: continue
         tweet_id = re.search("/status/([0-9]+)", link_el.attrs["href"]).group(1)
+
+        username = item.select_one(".username").text.replace("@", "")
+
         attachments = []
         for attachment in item.select(".attachment"):
             image_link = attachment.select_one("a.still-image")
@@ -113,14 +116,5 @@ def _extract_tweets(doc: BeautifulSoup) -> List[Tweet]:
             if not url.startswith("https://"):
                 url = "https://" + url
             attachments.append(Attachment(tweet_id=tweet_id, type=type, url=url))
-        result.append(Tweet(id=tweet_id, attachments=attachments))
+        result.append(Tweet(id=tweet_id, username=username, attachments=attachments))
     return result
-
-
-if __name__ == "__main__":
-    # parser = argparse.ArgumentParser()
-    # parser.add_argument("--pages", type=int)
-    # args = parser.parse_args()
-
-    task = create_graph().get_instance(Download)
-    task.handle(1)

@@ -5,7 +5,7 @@ from pix.config import Settings
 from pix.model.image import ImageRepo, ImageTag
 
 
-class Autotag:
+class AutotagTask:
     def __init__(
             self,
             settings: Settings,
@@ -25,8 +25,3 @@ class Autotag:
             tags = self.autotagger.extract(f)
             image.content.tags = [ImageTag(tag=tag, score=score) for tag, score in tags]
             self.image_repo.put(image.id, image.content)
-
-
-if __name__ == "__main__":
-    task = create_graph().get_instance(Autotag)
-    task.handle()

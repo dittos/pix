@@ -1,4 +1,4 @@
-from typing import List
+from typing import List, Union
 from pydantic import BaseModel
 from pixdb.repo import Repo
 from pixdb.schema import Schema
@@ -17,6 +17,7 @@ class Attachment(BaseModel):
 
 class Tweet(BaseModel):
     id: str
+    username: Union[str, None] = None
     attachments: List[Attachment]
 
 

@@ -20,6 +20,7 @@ class Image(BaseModel):
 
     source_url: Union[str, None]
     tweet_id: Union[str, None]
+    tweet_username: Union[str, None] = None
 
     tags: Union[List[ImageTag], None] = None
 

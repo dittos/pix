@@ -1,8 +1,6 @@
 from typing import Optional
-from fastapi import FastAPI, Request
-from fastapi.responses import HTMLResponse
-from fastapi.staticfiles import StaticFiles
-from fastapi.templating import Jinja2Templates
+from fastapi import FastAPI
+from pydantic import BaseModel
 
 from pix.app import create_graph
 from pix.model.image import ImageRepo
@@ -11,28 +9,35 @@ from pix.model.image import ImageRepo
 app = FastAPI()
 graph = create_graph()
 
-app.mount("/static", StaticFiles(directory="pix/static"), name="static")
+
+class ListTagsResultItem(BaseModel):
+    tag: str
+    image_count: int
 
 
-templates = Jinja2Templates(directory="pix/templates")
+@app.get("/api/tags")
+def list_tags():
+    image_repo = graph.get_instance(ImageRepo)
+    tags = image_repo.list_all_tags_with_count()
+    tags.sort(key=lambda tc: tc[1], reverse=True)
+    return [ListTagsResultItem(tag=tag, image_count=count) for tag, count in tags]
 
 
-@app.get("/", response_class=HTMLResponse)
-def index(request: Request, page: int = 1, tag: Optional[str] = None):
+@app.get("/api/images")
+def list_images(page: int = 1, tag: Optional[str] = None):
     limit = 20
     offset = (page - 1) * limit
     image_repo = graph.get_instance(ImageRepo)
     if tag:
-        images = image_repo.list_by_tag_collected_at_desc(tag, offset, limit)
+        images = image_repo.list_by_tag_collected_at_desc(tag, offset, limit + 1)
         count = image_repo.count_by_tag(tag)
     else:
-        images = image_repo.list_by_collected_at_desc(offset, limit)
+        images = image_repo.list_by_collected_at_desc(offset, limit + 1)
         count = image_repo.count()
-    tags = sorted(image_repo.list_all_tags_with_count(), key=lambda tc: tc[1], reverse=True)
-    return templates.TemplateResponse(request, "index.html", {
-        "images": images,
+    has_next_page = len(images) > limit
+    images = images[:limit]
+    return {
+        "data": images,
         "count": count,
-        "page": page,
-        "tags": tags,
-        "selected_tag": tag,
-    })
+        "has_next_page": has_next_page,
+    }

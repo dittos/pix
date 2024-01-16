@@ -1,0 +1,19 @@
+.HoverCardContent {
+    max-height: var(--radix-hover-card-content-available-height);
+    overflow-y: auto;
+}
+
+.image-clip {
+    position: relative;
+    overflow: hidden;
+}
+
+.image-clip:before {
+    content: '';
+    width: 100%;
+    height: 40px;
+    position: absolute;
+    left: 0;
+    bottom: 0px;
+    background: linear-gradient(to bottom, transparent 0%, #fff 100%);
+}

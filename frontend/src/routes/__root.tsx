@@ -1,5 +1,6 @@
 import * as React from 'react'
 import { Link, Outlet, RootRoute } from '@tanstack/react-router'
+import { Route as IndexRoute } from './index'
 
 export const Route = new RootRoute({
   component: RootComponent,
@@ -17,7 +18,7 @@ function RootComponent() {
           <div className="col-md-auto py-2 position-sticky top-0 vh-100 overflow-y-auto border-end">
             <TagList tags={data.tags} />
           </div>
-          <div className="col py-2">
+          <div className="col">
             <Outlet />
           </div>
         </div>
@@ -34,7 +35,7 @@ function TagList({ tags }: { tags: any[] }) {
       </div>
       {tags.map(tag => (
         <div key={tag.tag}>
-          <Link to="/" search={{tag: tag.tag}} className="link-underline link-underline-opacity-50">
+          <Link to={IndexRoute.fullPath} search={{tag: tag.tag}} className="link-underline link-underline-opacity-50">
             {tag.tag}
           </Link>
           <span className="ps-2 text-secondary">{tag.image_count}</span>

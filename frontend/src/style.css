@@ -1,6 +1,15 @@
 .HoverCardContent {
-    max-height: var(--radix-hover-card-content-available-height);
-    overflow-y: auto;
+    max-width: 480px;
+    pointer-events: none;
+    z-index: 1000;
+}
+
+.image-grid-item-selected img {
+    outline: 0.2rem solid rgba(0, 0, 255, .50);
+}
+
+.image-grid-item:hover img {
+    outline: 0.2rem solid rgba(0, 0, 0, .20);
 }
 
 .image-clip {

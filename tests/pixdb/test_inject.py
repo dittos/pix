@@ -62,3 +62,15 @@ def test_inject_settings_value():
     assert values.token == settings.token
     assert values.aliased == settings.token
     assert graph.get_instance(Settings) is settings
+
+
+def test_bind_implementation():
+    class Interface:
+        def a(self): ...
+    
+    class Implementation:
+        def a(self): return "hi"
+    
+    graph = Graph()
+    graph.bind_implementation(Interface, Implementation)
+    assert isinstance(graph.get_instance(Interface), Implementation)

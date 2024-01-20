@@ -21,9 +21,12 @@ class Graph:
     
     def bind_instance(self, type: Type[T], instance: T):
         self._cache[type] = instance
+
+    def bind_implementation(self, type: Type[T], impl_type: Type[T]):
+        self._factories[type] = impl_type, impl_type.__init__
     
     def bind_factory(self, type: Type[T], factory: Callable[..., T]):
-        self._factories[type] = factory
+        self._factories[type] = factory, factory
 
     def get_instance(self, type: Type[T]) -> T:
         cached = self._cache.get(type)
@@ -32,8 +35,10 @@ class Graph:
 
         try:
             custom_factory = self._factories.get(type)
-            func = custom_factory or type.__init__
-            factory = custom_factory or type
+            if custom_factory:
+                factory, func = custom_factory
+            else:
+                factory, func = type, type.__init__
             type_hints = get_type_hints(func, include_extras=True)
             kwargs = {}
             for name, annotation in type_hints.items():
@@ -44,7 +49,7 @@ class Graph:
             self._cache[type] = instance
             return instance
         except Exception as e:
-            raise ValueError(f"error while instantiating {type}", e)
+            raise ValueError(f"error while instantiating {type}") from e
     
     def _get_instance_from_annotation(self, name: str, annotation):
         if get_origin(annotation) is Annotated:

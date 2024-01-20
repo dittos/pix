@@ -2,7 +2,6 @@ from typing import List
 from typing_extensions import Annotated
 import requests
 import re
-import time
 from urllib.parse import unquote
 
 from bs4 import BeautifulSoup
@@ -16,17 +15,14 @@ class TwitterNitterDownloader(TwitterDownloader):
     def __init__(
             self,
             nitter_host: Annotated[str, Value],
-            nitter_request_sleep_seconds: Annotated[float, Value],
     ):
         self.host = nitter_host
-        self.request_sleep_seconds = nitter_request_sleep_seconds
 
     def get_favorites(self, username: str, pagination_state = None):
         first_page = f"{self.host}/{username}/favorites"
         page = first_page
         if pagination_state:
             page += pagination_state
-            time.sleep(self.request_sleep_seconds)
 
         print(f"downloading from {page}")
 
@@ -60,5 +56,6 @@ def _extract_tweets(doc: BeautifulSoup) -> List[Tweet]:
             if not url.startswith("https://"):
                 url = "https://" + url
             attachments.append(Attachment(tweet_id=tweet_id, type=type, url=url))
-        result.append(Tweet(id=tweet_id, username=username, attachments=attachments))
+        created_at = None  # TODO
+        result.append(Tweet(id=tweet_id, username=username, attachments=attachments, created_at=created_at))
     return result

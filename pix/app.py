@@ -8,12 +8,12 @@ from pix.model.base import metadata
 from pixdb.inject import Graph, Value
 
 
-def create_graph():
+def create_graph(debug: bool = False):
     settings = Settings()
     graph = Graph(settings)
 
     def engine_factory(db_uri: Annotated[str, Value]):
-        return create_engine(db_uri, echo=True)
+        return create_engine(db_uri, echo=debug)
     
     graph.bind_factory(Engine, engine_factory)
 

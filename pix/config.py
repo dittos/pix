@@ -8,7 +8,7 @@ class Settings(BaseSettings):
     db_uri: str
 
     nitter_host: str
-    nitter_request_sleep_seconds: float = 10
+    twitter_request_sleep_seconds: float = 10
     playwright_initial_cookies: str
     playwright_storage_state_path: Path = Path("playwright_state.json")
     twitter_username: str

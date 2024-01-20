@@ -1,3 +1,4 @@
+import datetime
 from typing import Dict, List, Union
 from pydantic import BaseModel
 from pixdb.repo import Repo
@@ -20,6 +21,7 @@ class Tweet(BaseModel):
     username: Union[str, None] = None
     attachments: List[Attachment]
     raw_data: Union[Dict, None] = None
+    created_at: Union[datetime.datetime, None]
 
 
 class TweetRepo(Repo[Tweet]):

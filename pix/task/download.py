@@ -1,4 +1,5 @@
 import datetime
+import time
 from typing import List, Tuple, Union
 import requests
 
@@ -32,10 +33,15 @@ class DownloadTask:
         with self.db.transactional():
             for tweet in tweets:
                 self.tweet_repo.put(tweet.id, tweet)
+            
             for tweet, attachment in attachments:
+                collected_at = datetime.datetime.now(tz=datetime.timezone.utc)
+                if pages is not None and tweet.created_at:
+                    collected_at = tweet.created_at
+                
                 image = Image(
                     local_filename=attachment.make_local_filename(),
-                    collected_at=datetime.datetime.now(tz=datetime.timezone.utc),
+                    collected_at=collected_at,
                     source_url=attachment.url,
                     tweet_id=tweet.id,
                     tweet_username=tweet.username,
@@ -50,19 +56,22 @@ class DownloadTask:
             pagination_state = None
 
             while pages is None or page_count < pages:
+                if page_count >= 1:
+                    time.sleep(self.settings.twitter_request_sleep_seconds)
+
                 result = self.twitter_downloader.get_favorites(username=self.settings.twitter_username, pagination_state=pagination_state)
                 page_count += 1
                 pagination_state = result.pagination_state
 
                 found_saved = False
                 for tweet in result.tweets:
-                    if pages is None and self.tweet_repo.get(tweet.id):
+                    if self.tweet_repo.get(tweet.id):
                         print(f"saved tweet found: {tweet.id}")
                         found_saved = True
                     else:
                         tweets.append(tweet)
                 
-                if found_saved:
+                if found_saved and pages is None:
                     break
             
             return tweets

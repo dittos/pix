@@ -1,4 +1,5 @@
 import datetime
+from enum import Enum
 import sqlalchemy as sa
 from typing import List, Tuple, Union
 from pydantic import BaseModel
@@ -9,9 +10,15 @@ from pixdb.schema import IndexField, Schema
 from pix.model.base import metadata
 
 
+class TagType(Enum):
+    CHARACTER = "CHARACTER"
+    RATING = "RATING"
+
+
 class ImageTag(BaseModel):
     tag: str
     score: Union[float, None]
+    type: Union[TagType, None]
 
 
 class Image(BaseModel):

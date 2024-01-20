@@ -1,5 +1,4 @@
 from tqdm.auto import tqdm
-from pix.app import create_graph
 from pix.autotagger.wd import WdAutotagger
 from pix.config import Settings
 from pix.model.image import ImageRepo, ImageTag
@@ -23,5 +22,5 @@ class AutotagTask:
         for image in tqdm(images):
             f = self.settings.images_dir / image.content.local_filename
             tags = self.autotagger.extract(f)
-            image.content.tags = [ImageTag(tag=tag, score=score) for tag, score in tags]
+            image.content.tags = [ImageTag(tag=tag, type=type, score=score) for tag, type, score in tags]
             self.image_repo.put(image.id, image.content)

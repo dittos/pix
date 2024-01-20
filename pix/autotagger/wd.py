@@ -7,7 +7,8 @@ import onnxruntime as rt
 import PIL.Image
 
 from pathlib import Path
-from typing import List, Tuple
+from typing import List, Tuple, Union
+from pix.model.image import TagType
 
 from pixdb.inject import Value
 
@@ -45,14 +46,13 @@ class WdAutotagger:
             character_indexes=character_indexes,
         )
 
-    def extract(self, file: Path) -> List[Tuple[str, float]]:
+    def extract(self, file: Path) -> List[Tuple[str, Union[TagType, None], float]]:
         with PIL.Image.open(file) as im:
-            tags = self._predict(
+            return self._predict(
                 im,
                 general_threshold=self.score_general_threshold,
                 character_threshold=self.score_character_threshold,
             )
-            return list(tags.items())
 
 
 def load_labels(huggingface_token: str) -> List[str]:
@@ -105,17 +105,14 @@ def predict(
 
     # First 4 labels are actually ratings: pick one with argmax
     ratings_names = [labels[i] for i in rating_indexes]
-    ratings = [x for x in ratings_names if x[1] > general_threshold]
-    ratings = {f"rating:{tag[0]}": score for tag, score in ratings}
+    ratings = [(f"rating:{tag[0]}", TagType.RATING, score) for tag, score in ratings_names if score > general_threshold]
 
     # Then we have general tags: pick any where prediction confidence > threshold
     general_names = [labels[i] for i in general_indexes]
-    general_res = [x for x in general_names if x[1] > general_threshold]
-    general_res = dict(general_res)
+    general_res = [(tag, None, score) for tag, score in general_names if score > general_threshold]
 
     # Everything else is characters: pick any where prediction confidence > threshold
     character_names = [labels[i] for i in character_indexes]
-    character_res = [x for x in character_names if x[1] > character_threshold]
-    character_res = dict(character_res)
+    character_res = [(tag, TagType.CHARACTER, score) for tag, score in character_names if score > character_threshold]
 
-    return {**ratings, **general_res, **character_res}
+    return ratings + general_res + character_res

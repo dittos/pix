@@ -1,4 +1,5 @@
 from contextlib import contextmanager
+from email.utils import parsedate_to_datetime
 import json
 from pathlib import Path
 import time
@@ -61,12 +62,15 @@ class TwitterPlaywrightDownloader(TwitterDownloader):
     ):
         page = self._page
         if pagination_state is None:
+            url = f"https://twitter.com/{username}/likes"
+            print(f"downloading from {url}")
             with page.expect_response(is_graphql_likes_response) as response:
-                page.goto(f"https://twitter.com/{username}/likes")
+                page.goto(url)
             response = response.value
             headers = response.request.headers
         else:
             url, headers = pagination_state
+            print("downloading from api")
             response = page.request.get(url, headers=headers, fail_on_status_code=True)
 
         api_url = response.url
@@ -86,7 +90,7 @@ class TwitterPlaywrightDownloader(TwitterDownloader):
                         raw_tweet = raw_tweet["tweet"]
 
                     attachments = []
-                    for media in raw_tweet.get("legacy", {}).get("extended_entities", {}).get("media", []):
+                    for media in raw_tweet["legacy"].get("extended_entities", {}).get("media", []):
                         attachments.append(Attachment(
                             tweet_id=raw_tweet["rest_id"],
                             type=media["type"],
@@ -97,6 +101,7 @@ class TwitterPlaywrightDownloader(TwitterDownloader):
                         username=raw_tweet["core"]["user_results"]["result"]["legacy"]["screen_name"],
                         attachments=attachments,
                         raw_data=raw_tweet,
+                        created_at=parsedate_to_datetime(raw_tweet["legacy"]["created_at"]),
                     ))
         
         parsed = urlparse(api_url)

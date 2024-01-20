@@ -5,5 +5,5 @@ from pix.task.download import DownloadTask
 
 if __name__ == "__main__":
     graph = create_graph()
-    graph.get_instance(DownloadTask).handle(5)
+    graph.get_instance(DownloadTask).handle()
     graph.get_instance(AutotagTask).handle()

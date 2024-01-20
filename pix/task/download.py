@@ -1,13 +1,9 @@
 import datetime
 from typing import List, Tuple, Union
 import requests
-import re
-import time
-from urllib.parse import unquote
-
-from bs4 import BeautifulSoup
 
 from pix.config import Settings
+from pix.downloader.twitter_base import TwitterDownloader
 from pix.model.image import Image, ImageRepo
 from pix.model.tweet import Attachment, Tweet, TweetRepo
 from pixdb.db import Database
@@ -20,11 +16,13 @@ class DownloadTask:
             db: Database,
             tweet_repo: TweetRepo,
             image_repo: ImageRepo,
+            twitter_downloader: TwitterDownloader,
     ):
         self.settings = settings
         self.db = db
         self.tweet_repo = tweet_repo
         self.image_repo = image_repo
+        self.twitter_downloader = twitter_downloader
 
     def handle(self, pages: Union[int, None] = None):
         tweets = self._get_new_tweets(pages)
@@ -46,37 +44,28 @@ class DownloadTask:
                 self.image_repo.put(image_id, image)
 
     def _get_new_tweets(self, pages: Union[int, None] = None):
-        first_page = f"{self.settings.nitter_host}/{self.settings.twitter_username}/favorites"
-        page = first_page
-        result = []
-        page_count = 0
+        with self.twitter_downloader.open():
+            page_count = 0
+            tweets = []
+            pagination_state = None
 
-        while pages is None or page_count < pages:
-            if page_count > 0:
-                time.sleep(self.settings.nitter_request_sleep_seconds)
+            while pages is None or page_count < pages:
+                result = self.twitter_downloader.get_favorites(username=self.settings.twitter_username, pagination_state=pagination_state)
+                page_count += 1
+                pagination_state = result.pagination_state
 
-            print(f"downloading from {page}")
-
-            resp = requests.get(page)
-            resp.raise_for_status()
-            page_count += 1
-
-            doc = BeautifulSoup(resp.content, features="html.parser")
-            tweets = _extract_tweets(doc)
-            page = first_page + doc.select(".show-more a")[-1].attrs["href"]
-
-            found_saved = False
-            for tweet in tweets:
-                if pages is None and self.tweet_repo.get(tweet.id):
-                    print(f"saved tweet found: {tweet.id}")
-                    found_saved = True
-                else:
-                    result.append(tweet)
+                found_saved = False
+                for tweet in result.tweets:
+                    if pages is None and self.tweet_repo.get(tweet.id):
+                        print(f"saved tweet found: {tweet.id}")
+                        found_saved = True
+                    else:
+                        tweets.append(tweet)
+                
+                if found_saved:
+                    break
             
-            if found_saved:
-                break
-        
-        return result
+            return tweets
 
     def _download_images(self, tweets: List[Tweet]) -> List[Tuple[Tweet, Attachment]]:
         result = []
@@ -94,27 +83,3 @@ class DownloadTask:
                     download_path.write_bytes(r.content)
                 result.append((tweet, attachment))
         return result
-
-
-def _extract_tweets(doc: BeautifulSoup) -> List[Tweet]:
-    result = []
-    for item in doc.select(".timeline-item"):
-        link_el = item.select_one(".tweet-link")
-        if not link_el: continue
-        tweet_id = re.search("/status/([0-9]+)", link_el.attrs["href"]).group(1)
-
-        username = item.select_one(".username").text.replace("@", "")
-
-        attachments = []
-        for attachment in item.select(".attachment"):
-            image_link = attachment.select_one("a.still-image")
-            if not image_link: continue
-            type = "photo"
-            url = unquote(image_link.attrs["href"].rsplit("/")[-1])
-            if "twimg.com" not in url:
-                url = "pbs.twimg.com/" + url
-            if not url.startswith("https://"):
-                url = "https://" + url
-            attachments.append(Attachment(tweet_id=tweet_id, type=type, url=url))
-        result.append(Tweet(id=tweet_id, username=username, attachments=attachments))
-    return result

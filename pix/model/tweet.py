@@ -1,4 +1,4 @@
-from typing import List, Union
+from typing import Dict, List, Union
 from pydantic import BaseModel
 from pixdb.repo import Repo
 from pixdb.schema import Schema
@@ -19,6 +19,7 @@ class Tweet(BaseModel):
     id: str
     username: Union[str, None] = None
     attachments: List[Attachment]
+    raw_data: Union[Dict, None] = None
 
 
 class TweetRepo(Repo[Tweet]):

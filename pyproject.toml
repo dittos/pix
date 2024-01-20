@@ -24,6 +24,9 @@ huggingface-hub = "^0.20.2"
 onnxruntime = ">=1.12.0"
 opencv-python = "~4.8"
 
+[tool.poetry.group.downloader-twitter-playwright.dependencies]
+playwright = "^1.41.0"
+
 [build-system]
 requires = ["poetry-core"]
 build-backend = "poetry.core.masonry.api"

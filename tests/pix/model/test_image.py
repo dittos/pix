@@ -1,0 +1,34 @@
+import datetime
+from typing import List
+from sqlalchemy import create_engine
+from pix.model.base import metadata
+from pix.model.image import Image, ImageRepo, ImageTag
+from pixdb.db import Database
+
+
+def test_list_by_tag_collected_at_desc():
+    engine = create_engine("sqlite://", echo=True)
+    db = Database(engine)
+    metadata.create_all(engine)
+    image_repo = ImageRepo(db)
+
+    image_repo.put("a", _new_image(["a"]))
+    image_repo.put("ab", _new_image(["a", "b"]))
+
+    assert set(doc.id for doc in image_repo.list_by_tag_collected_at_desc("a", 0, 10)) == {"a", "ab"}
+    assert set(doc.id for doc in image_repo.list_by_tag_collected_at_desc("a b", 0, 10)) == {"ab"}
+    assert set(doc.id for doc in image_repo.list_by_tag_collected_at_desc("a -b", 0, 10)) == {"a"}
+    assert set(doc.id for doc in image_repo.list_by_tag_collected_at_desc("-b", 0, 10)) == {"a"}
+
+
+def _new_image(tags: List[str]):
+    return Image(
+        local_filename="",
+        collected_at=datetime.datetime.now(),
+
+        source_url=None,
+        tweet_id=None,
+        tweet_username=None,
+
+        tags=[ImageTag(tag=tag, score=None, type=None) for tag in tags],
+    )

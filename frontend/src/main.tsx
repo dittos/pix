@@ -8,7 +8,7 @@ import 'bootstrap/dist/css/bootstrap.css'
 // Set up a Router instance
 const router = new Router({
   routeTree,
-  defaultPreload: 'intent',
+  defaultPreload: false,
 })
 
 // Register things for typesafety

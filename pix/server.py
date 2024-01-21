@@ -7,7 +7,7 @@ from pix.model.image import ImageRepo
 
 
 app = FastAPI()
-graph = create_graph()
+graph = create_graph(debug=True)
 
 
 class ListTagsResultItem(BaseModel):
@@ -16,9 +16,9 @@ class ListTagsResultItem(BaseModel):
 
 
 @app.get("/api/tags")
-def list_tags():
+def list_tags(q: Optional[str] = None):
     image_repo = graph.get_instance(ImageRepo)
-    tags = image_repo.list_all_tags_with_count()
+    tags = image_repo.list_all_tags_with_count(q)
     tags.sort(key=lambda tc: tc[1], reverse=True)
     return [ListTagsResultItem(tag=tag, image_count=count) for tag, count in tags]
 

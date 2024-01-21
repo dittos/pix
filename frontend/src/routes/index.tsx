@@ -2,6 +2,7 @@ import * as React from 'react'
 import { FileRoute, Link } from '@tanstack/react-router'
 import * as HoverCard from '@radix-ui/react-hover-card'
 import { useState } from 'react'
+import { removeTag } from '../utils/tagQuery'
 
 type SearchParams = {
   tag?: string
@@ -34,7 +35,13 @@ function HomeComponent() {
   return (
     <div className="d-flex">
       <div className="col py-2">
-      {search.tag && <h2>{search.tag}</h2>}
+      {search.tag && (
+        <div className="my-2">
+          {search.tag.split(" ").map(term => (
+            <span className="border rounded p-2 me-2">{term} <Link search={{tag: removeTag(search.tag, term)}} className="link-underline-light">&times;</Link></span>
+          ))}
+        </div>
+      )}
       <p className="mb-4">total {images.count} images</p>
 
       <div className="d-flex flex-wrap">
@@ -45,15 +52,17 @@ function HomeComponent() {
                 <div className={image.id === selectedImage?.id ? "image-grid-item-selected" : "image-grid-item"}>
                   <a href="javascript:" className="d-block"
                     onClick={() => image.id === selectedImage?.id ? setSelectedImage(null) : setSelectedImage(image)}>
-                    <SmartImage src={image.content.source_url} loading="lazy" />
+                    <SmartImage src={image.content.source_url + "?name=small"} loading="lazy" />
                   </a>
                 </div>
               </div>
             </HoverCard.HoverCardTrigger>
             <HoverCard.HoverCardContent className="HoverCardContent">
-              <div className="rounded bg-dark bg-opacity-75 text-white p-1 small">
-                {image.content.tags?.map((tag: any) => tag.tag).join(", ")}
-              </div>
+              {image.content.tags && (
+                <div className="rounded bg-dark bg-opacity-75 text-white p-1 small">
+                  {image.content.tags?.map((tag: any) => tag.tag).join(", ")}
+                </div>
+              )}
             </HoverCard.HoverCardContent>
           </HoverCard.HoverCard>
         ))}
@@ -82,10 +91,12 @@ function HomeComponent() {
             <p className="card-text">source: @{selectedImage.content.tweet_username}</p>
           )}
           <p className="card-text">
-            {selectedImage.content.tags?.map((tag: any) => (
-              <div key={tag.tag}>
-                <Link search={{tag: tag.tag}}>{tag.tag}</Link> {tag.score.toFixed(3)}<br />
-              </div>
+            {['RATING', 'CHARACTER', null].map(tagType => (
+              selectedImage.content.tags?.filter((tag: any) => tag.type === tagType).map((tag: any) => (
+                <div key={tag.tag}>
+                  <Link search={{tag: tag.tag}}>{tag.tag}</Link> {tag.score.toFixed(3)}<br />
+                </div>
+              ))
             ))}
           </p>
         </div>

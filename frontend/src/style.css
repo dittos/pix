@@ -26,3 +26,10 @@
     bottom: 0px;
     background: linear-gradient(to bottom, transparent 0%, #fff 100%);
 }
+
+.TagList-item .link-secondary {
+    display: none;
+}
+.TagList-item:hover .link-secondary {
+    display: initial;
+}

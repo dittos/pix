@@ -2,20 +2,22 @@ import * as React from 'react'
 import { FileRoute, Link } from '@tanstack/react-router'
 import * as HoverCard from '@radix-ui/react-hover-card'
 import { useState } from 'react'
-import { removeTag } from '../utils/tagQuery'
+import { applyQuickFilters } from '../utils/tagQuery'
+import { addTagReducer, onlyTagReducer, removeTagReducer } from '../utils/search'
 
-type SearchParams = {
-  tag?: string
+type RouteSearch = {
   page?: number
 }
 
 export const Route = new FileRoute('/').createRoute({
   component: HomeComponent,
-  validateSearch: (search: Record<string, unknown>): SearchParams => ({
-    tag: search?.tag as string,
+  validateSearch: (search: Record<string, unknown>): RouteSearch => ({
     page: search?.page ? Number(search.page) : 1,
   }),
-  loaderDeps: ({ search }) => ({ tag: search.tag, page: search.page }),
+  loaderDeps: ({ search }) => ({
+    tag: applyQuickFilters(search.tag, search),
+    page: search.page ?? 1,
+  }),
   loader: async ({ deps: { tag, page } }) => ({
     images: await (await fetch('/api/images?' + new URLSearchParams({
       ...(tag && {tag}),
@@ -38,7 +40,7 @@ function HomeComponent() {
       {search.tag && (
         <div className="my-2">
           {search.tag.split(" ").map(term => (
-            <span className="border rounded p-2 me-2">{term} <Link search={{tag: removeTag(search.tag, term)}} className="link-underline-light">&times;</Link></span>
+            <span className="border rounded p-2 me-2">{term} <Link search={removeTagReducer(term)} className="link-underline-light">&times;</Link></span>
           ))}
         </div>
       )}
@@ -46,9 +48,9 @@ function HomeComponent() {
 
       <div className="d-flex flex-wrap">
         {images.data.map((image: any) => (
-          <HoverCard.HoverCard openDelay={0} closeDelay={0}>
+          <HoverCard.HoverCard key={image.id} openDelay={0} closeDelay={0}>
             <HoverCard.HoverCardTrigger>
-              <div className="me-2 mb-2" key={image.id}>
+              <div className="me-2 mb-2">
                 <div className={image.id === selectedImage?.id ? "image-grid-item-selected" : "image-grid-item"}>
                   <a href="javascript:" className="d-block"
                     onClick={() => image.id === selectedImage?.id ? setSelectedImage(null) : setSelectedImage(image)}>
@@ -93,8 +95,17 @@ function HomeComponent() {
           <p className="card-text">
             {['RATING', 'CHARACTER', null].map(tagType => (
               selectedImage.content.tags?.filter((tag: any) => tag.type === tagType).map((tag: any) => (
-                <div key={tag.tag}>
-                  <Link search={{tag: tag.tag}}>{tag.tag}</Link> {tag.score.toFixed(3)}<br />
+                <div key={tag.tag} className="TagList-item">
+                  <Link to="/" search={addTagReducer(tag.tag)} className="link-underline-light">
+                    {tag.tag}
+                  </Link>
+                  <span className="ps-2 text-secondary">{tag.score.toFixed(3)}</span>
+                  <Link to="/" search={onlyTagReducer(tag.tag)} className="ms-2 link-secondary">
+                    only
+                  </Link>
+                  <Link to="/" search={addTagReducer("-" + tag.tag)} className="ms-1 link-secondary">
+                    not
+                  </Link>
                 </div>
               ))
             ))}
@@ -119,9 +130,10 @@ function SmartImage(props: any) {
     if (resizedWidth < minWidth) {
       clip = true
     }
+    // TODO: apply horizontal clip for too wide landscape image
   }
   return (
-    <div className={clip ? "image-clip" : undefined} style={{height}}>
+    <div className={clip ? "image-clip" : undefined} style={{height, maxWidth: 480}}>
       <img {...props} onLoad={onLoad} className="rounded border" style={clip ? {width: minWidth} : {height}} />
     </div>
   )

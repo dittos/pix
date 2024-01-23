@@ -52,7 +52,7 @@ function HomeComponent() {
                 <div className={image.id === selectedImage?.id ? "image-grid-item-selected" : "image-grid-item"}>
                   <a href="javascript:" className="d-block"
                     onClick={() => image.id === selectedImage?.id ? setSelectedImage(null) : setSelectedImage(image)}>
-                    <SmartImage src={image.content.source_url + "?name=small"} loading="lazy" />
+                    <SmartImage src={`/images/${image.content.local_filename}`} />
                   </a>
                 </div>
               </div>

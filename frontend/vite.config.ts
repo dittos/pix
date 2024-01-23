@@ -6,7 +6,8 @@ import { TanStackRouterVite } from '@tanstack/router-vite-plugin'
 export default defineConfig({
   server: {
     proxy: {
-      '/api': 'http://localhost:8888'
+      '/api': 'http://localhost:8888',
+      '/images': 'http://localhost:8888',
     }
   },
   plugins: [

@@ -1,13 +1,16 @@
 from typing import Optional
 from fastapi import FastAPI
+from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel
 
 from pix.app import create_graph
+from pix.config import Settings
 from pix.model.image import ImageRepo
 
 
 app = FastAPI()
 graph = create_graph(debug=True)
+app.mount("/images", StaticFiles(directory=graph.get_instance(Settings).images_dir), name="images")
 
 
 class ListTagsResultItem(BaseModel):

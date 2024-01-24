@@ -4,11 +4,11 @@
     z-index: 1000;
 }
 
-.image-grid-item-selected img {
+.image-grid-item-selected {
     outline: 0.2rem solid rgba(0, 0, 255, .50);
 }
 
-.image-grid-item:hover img {
+.image-grid-item:hover {
     outline: 0.2rem solid rgba(0, 0, 0, .20);
 }
 

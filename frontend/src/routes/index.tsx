@@ -51,7 +51,7 @@ function HomeComponent() {
           <HoverCard.HoverCard key={image.id} openDelay={0} closeDelay={0}>
             <HoverCard.HoverCardTrigger>
               <div className="me-2 mb-2">
-                <div className={image.id === selectedImage?.id ? "image-grid-item-selected" : "image-grid-item"}>
+                <div className={`rounded border overflow-hidden ${image.id === selectedImage?.id ? "image-grid-item-selected" : "image-grid-item"}`}>
                   <a href="javascript:" className="d-block"
                     onClick={() => image.id === selectedImage?.id ? setSelectedImage(null) : setSelectedImage(image)}>
                     <SmartImage src={`/images/${image.content.local_filename}`} />
@@ -133,8 +133,8 @@ function SmartImage(props: any) {
     // TODO: apply horizontal clip for too wide landscape image
   }
   return (
-    <div className={clip ? "image-clip" : undefined} style={{height, maxWidth: 480}}>
-      <img {...props} onLoad={onLoad} className="rounded border" style={clip ? {width: minWidth} : {height}} />
+    <div className={clip ? "image-clip" : undefined} style={{overflow: 'hidden', height, maxWidth: 480}}>
+      <img {...props} onLoad={onLoad} style={clip ? {width: minWidth} : {height}} />
     </div>
   )
 }

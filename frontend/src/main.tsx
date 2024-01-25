@@ -1,22 +1,33 @@
 import React from 'react'
 import ReactDOM from 'react-dom/client'
-import { RouterProvider, Router } from '@tanstack/react-router'
-import { routeTree } from './routeTree.gen'
+import {
+  createBrowserRouter,
+  RouterProvider,
+} from "react-router-dom"
 import './style.css'
 import 'bootstrap/dist/css/bootstrap.css'
+import { loader, RootComponent } from './routes/__root'
+import { HomeComponent, loader as homeLoader } from './routes'
+import { extractRootSearchParams } from './utils/search'
+import isEqual from 'lodash/isEqual'
 
-// Set up a Router instance
-const router = new Router({
-  routeTree,
-  defaultPreload: false,
-})
-
-// Register things for typesafety
-declare module '@tanstack/react-router' {
-  interface Register {
-    router: typeof router
-  }
-}
+const router = createBrowserRouter([
+  {
+    path: "/",
+    element: <RootComponent />,
+    loader,
+    shouldRevalidate: ({ currentUrl, nextUrl }) => {
+      return !isEqual(extractRootSearchParams(currentUrl.searchParams), extractRootSearchParams(nextUrl.searchParams))
+    },
+    children: [
+      {
+        index: true,
+        element: <HomeComponent />,
+        loader: homeLoader
+      }
+    ]
+  },
+])
 
 const rootElement = document.getElementById('root')!
 

@@ -80,31 +80,11 @@ export function HomeComponent() {
       </div>
 
       {selectedImage && (
-        <div className="col-3 border-start p-2 position-sticky top-0 vh-100 overflow-y-auto bg-body-tertiary">
-          <button type="button" className="btn-close float-end" aria-label="Close" onClick={() => setSelectedImage(null)} />
-
-          {selectedImage.content.tweet_username && (
-            <p className="card-text">source: @{selectedImage.content.tweet_username}</p>
-          )}
-          <p className="card-text">
-            {['RATING', 'CHARACTER', null].map(tagType => (
-              selectedImage.content.tags?.filter((tag: any) => tag.type === tagType).map((tag: any) => (
-                <div key={tag.tag} className="TagList-item">
-                  <RootLink search={addTag(search, tag.tag)} className="link-underline-light">
-                    {tag.tag}
-                  </RootLink>
-                  <span className="ps-2 text-secondary">{tag.score.toFixed(3)}</span>
-                  <RootLink search={onlyTag(search, tag.tag)} className="ms-2 link-secondary">
-                    only
-                  </RootLink>
-                  <RootLink search={addTag(search, "-" + tag.tag)} className="ms-1 link-secondary">
-                    not
-                  </RootLink>
-                </div>
-              ))
-            ))}
-          </p>
-        </div>
+        <DetailPanel
+          key={selectedImage.id}
+          selectedImage={selectedImage}
+          onClose={() => setSelectedImage(null)}
+        />
       )}
     </div>
   )
@@ -129,6 +109,57 @@ function SmartImage(props: any) {
   return (
     <div className={clip ? "image-clip" : undefined} style={{overflow: 'hidden', height, maxWidth: 480}}>
       <img {...props} onLoad={onLoad} style={clip ? {width: minWidth} : {height}} />
+    </div>
+  )
+}
+
+function DetailPanel({
+  selectedImage,
+  onClose,
+}: any) {
+  const search = useExtractedSearchParams(extractRootSearchParams)
+  const [similarImages, setSimilarImages] = React.useState([])
+  React.useEffect(() => {
+    fetch(`/api/images/${encodeURIComponent(selectedImage.id)}/similar`)
+      .then(r => r.json())
+      .then(r => setSimilarImages(r))
+  }, [selectedImage.id])
+
+  return (
+    <div className="col-3 border-start p-2 position-sticky top-0 vh-100 overflow-y-auto bg-body-tertiary">
+      <button type="button" className="btn-close float-end" aria-label="Close" onClick={onClose} />
+
+      {selectedImage.content.tweet_username && (
+        <p className="card-text">source: @{selectedImage.content.tweet_username}</p>
+      )}
+
+      <div className="d-flex flex-wrap">
+        {similarImages.map((image: any) => (
+          <div className="me-2 mb-2">
+            <img src={`/images/${image.content.local_filename}`} style={{height: 120}} />
+            <br />{image.score.toFixed(3)}
+          </div>
+        ))}
+      </div>
+
+      <p className="card-text">
+        {['RATING', 'CHARACTER', null].map(tagType => (
+          selectedImage.content.tags?.filter((tag: any) => tag.type === tagType).map((tag: any) => (
+            <div key={tag.tag} className="TagList-item">
+              <RootLink search={addTag(search, tag.tag)} className="link-underline-light">
+                {tag.tag}
+              </RootLink>
+              <span className="ps-2 text-secondary">{tag.score.toFixed(3)}</span>
+              <RootLink search={onlyTag(search, tag.tag)} className="ms-2 link-secondary">
+                only
+              </RootLink>
+              <RootLink search={addTag(search, "-" + tag.tag)} className="ms-1 link-secondary">
+                not
+              </RootLink>
+            </div>
+          ))
+        ))}
+      </p>
     </div>
   )
 }

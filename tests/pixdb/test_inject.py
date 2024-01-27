@@ -74,3 +74,11 @@ def test_bind_implementation():
     graph = Graph()
     graph.bind_implementation(Interface, Implementation)
     assert isinstance(graph.get_instance(Interface), Implementation)
+
+
+def test_run():
+    def f(b: B):
+        return b
+
+    graph = Graph()
+    assert isinstance(graph.run(f), B)

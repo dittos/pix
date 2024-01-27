@@ -1,8 +1,10 @@
+import base64
 from dataclasses import dataclass
 import datetime
 from enum import Enum
+import numpy as np
 import sqlalchemy as sa
-from typing import List, Tuple, Union
+from typing import Iterator, List, Tuple, Union
 from pydantic import BaseModel
 from pixdb.doc import Doc
 from pixdb.repo import Repo
@@ -22,6 +24,18 @@ class ImageTag(BaseModel):
     type: Union[TagType, None]
 
 
+class Vector(BaseModel):
+    data: bytes
+    dtype: str
+
+    @staticmethod
+    def from_numpy(arr: np.array):
+        return Vector(data=base64.b64encode(arr), dtype=arr.dtype.name)
+    
+    def to_numpy(self) -> np.array:
+        return np.frombuffer(base64.b64decode(self.data), dtype=self.dtype)
+
+
 class Image(BaseModel):
     local_filename: str
     collected_at: datetime.datetime
@@ -31,6 +45,7 @@ class Image(BaseModel):
     tweet_username: Union[str, None] = None
 
     tags: Union[List[ImageTag], None] = None
+    embedding: Union[Vector, None] = None
 
 
 @dataclass
@@ -75,6 +90,9 @@ class ImageRepo(Repo[Image]):
 
     def count(self) -> int:
         return self.db.execute(sa.select(sa.func.count()).select_from(self.table)).first()[0]
+
+    def all(self) -> Iterator[Doc[Image]]:
+        return (self._doc_from_row(row) for row in self.db.execute(sa.select(self.table)))
 
     def list_by_collected_at_desc(self, offset: int, limit: int) -> List[Doc[Image]]:
         return [self._doc_from_row(row) for row in self.db.execute(

@@ -10,9 +10,9 @@ class Settings(BaseSettings):
     nitter_host: str
     twitter_request_sleep_seconds: float = 10
     playwright_initial_cookies: str
-    playwright_storage_state_path: Path = Path("playwright_state.json")
     twitter_username: str
 
     images_dir: Path
+    data_dir: Path
 
     huggingface_token: str

@@ -1,8 +1,11 @@
 import csv
+from dataclasses import dataclass
 import functools
+import time
 from typing_extensions import Annotated
 import huggingface_hub
 import numpy as np
+import onnx
 import onnxruntime as rt
 import PIL.Image
 
@@ -23,19 +26,38 @@ MODEL_FILENAME = "model.onnx"
 LABEL_FILENAME = "selected_tags.csv"
 
 
+@dataclass
+class AutotagResult:
+    tags: List[Tuple[str, Union[TagType, None], float]]
+    embedding: Union[np.array, None]
+
+
 class WdAutotagger:
-    def __init__(self, huggingface_token: Annotated[str, Value]) -> None:
+    def __init__(self, huggingface_token: Annotated[str, Value], data_dir: Annotated[Path, Value]) -> None:
         self.huggingface_token = huggingface_token
+        self.modified_model_cache_path = data_dir / "wd-autotagger-model.onnx"
         self.score_general_threshold = 0.35
         self.score_character_threshold = 0.85
 
     def load_model(self):
         tag_names, rating_indexes, general_indexes, character_indexes = load_labels(self.huggingface_token)
 
-        path = huggingface_hub.hf_hub_download(
-            MOAT_MODEL_REPO, MODEL_FILENAME, use_auth_token=self.huggingface_token
-        )
-        model = rt.InferenceSession(path)
+        # TODO: invalidation
+        if not self.modified_model_cache_path.exists():
+            path = huggingface_hub.hf_hub_download(
+                MOAT_MODEL_REPO, MODEL_FILENAME, use_auth_token=self.huggingface_token
+            )
+
+            print("modifying model...")
+            start = time.perf_counter()
+            raw_model = onnx.load(path)
+            raw_model.graph.output.append(onnx.ValueInfoProto(name="StatefulPartitionedCall/MoAt2/predictions_norm/add:0"))
+            onnx.save_model(raw_model, self.modified_model_cache_path)
+            del raw_model
+            end = time.perf_counter()
+            print(f"modifying model finished - took {end - start} s")
+
+        model = rt.InferenceSession(self.modified_model_cache_path)
         
         self._predict = functools.partial(
             predict,
@@ -46,7 +68,7 @@ class WdAutotagger:
             character_indexes=character_indexes,
         )
 
-    def extract(self, file: Path) -> List[Tuple[str, Union[TagType, None], float]]:
+    def extract(self, file: Path) -> AutotagResult:
         with PIL.Image.open(file) as im:
             return self._predict(
                 im,
@@ -99,7 +121,8 @@ def predict(
 
     input_name = model.get_inputs()[0].name
     label_name = model.get_outputs()[0].name
-    probs = model.run([label_name], {input_name: image})[0]
+    emb_name = model.get_outputs()[1].name
+    probs, emb = model.run([label_name, emb_name], {input_name: image})
 
     labels = list(zip(tag_names, probs[0].astype(float)))
 
@@ -115,4 +138,7 @@ def predict(
     character_names = [labels[i] for i in character_indexes]
     character_res = [(tag, TagType.CHARACTER, score) for tag, score in character_names if score > character_threshold]
 
-    return ratings + general_res + character_res
+    return AutotagResult(
+        tags=ratings + general_res + character_res,
+        embedding=emb[0],
+    )

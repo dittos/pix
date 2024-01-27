@@ -20,10 +20,10 @@ class TwitterPlaywrightDownloader(TwitterDownloader):
     def __init__(
             self,
             playwright_initial_cookies: Annotated[str, Value],
-            playwright_storage_state_path: Annotated[Path, Value],
+            data_dir: Annotated[Path, Value],
     ):
         self.inital_cookies = playwright_initial_cookies
-        self.storage_state_path = playwright_storage_state_path
+        self.storage_state_path = data_dir / "playwright_state.json"
         self._page = None
 
     def _get_storage_state(self):

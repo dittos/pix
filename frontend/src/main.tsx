@@ -2,6 +2,7 @@ import React from 'react'
 import ReactDOM from 'react-dom/client'
 import {
   createBrowserRouter,
+  Navigate,
   RouterProvider,
 } from "react-router-dom"
 import './style.css'
@@ -14,6 +15,10 @@ import isEqual from 'lodash/isEqual'
 const router = createBrowserRouter([
   {
     path: "/",
+    element: <Navigate to="/search" />,
+  },
+  {
+    path: "/search",
     element: <RootComponent />,
     loader,
     shouldRevalidate: ({ currentUrl, nextUrl }) => {

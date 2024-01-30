@@ -21,7 +21,7 @@ export const RootLink: React.FC<React.PropsWithChildren<{
     }
   }
   return (
-    <Link to={{pathname: '/', search: searchParams.toString()}} {...props} />
+    <Link to={{pathname: '/search', search: searchParams.toString()}} {...props} />
   )
 }
 

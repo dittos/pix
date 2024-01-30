@@ -91,9 +91,6 @@ class ImageRepo(Repo[Image]):
     def count(self) -> int:
         return self.db.execute(sa.select(sa.func.count()).select_from(self.table)).first()[0]
 
-    def all(self) -> Iterator[Doc[Image]]:
-        return (self._doc_from_row(row) for row in self.db.execute(sa.select(self.table)))
-
     def list_by_collected_at_desc(self, offset: int, limit: int) -> List[Doc[Image]]:
         return [self._doc_from_row(row) for row in self.db.execute(
             sa.select(self.table)

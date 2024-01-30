@@ -10,7 +10,7 @@ export const loader: LoaderFunction = async ({ request }) => {
   const {tag} = search
   return {
     tags: await (await fetch("/api/tags?" + new URLSearchParams({
-      ...(tag && {q: applyQuickFilters(tag, search)}),
+      q: applyQuickFilters(tag, search),
     }))).json()
   }
 }

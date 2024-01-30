@@ -1,4 +1,5 @@
-from typing import Optional
+import datetime
+from typing import List, Optional, Union
 from fastapi import FastAPI, HTTPException
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel
@@ -6,7 +7,8 @@ from pydantic import BaseModel
 from pix.app import create_graph
 from pix.config import Settings
 from pix.embedding_index import EmbeddingIndexManager
-from pix.model.image import ImageRepo
+from pix.model.image import Image, ImageRepo, ImageTag
+from pixdb.doc import Doc
 
 
 app = FastAPI()
@@ -27,8 +29,34 @@ def list_tags(q: Optional[str] = None):
     return [ListTagsResultItem(tag=tag, image_count=count) for tag, count in tags]
 
 
+class ImageDto(BaseModel):
+    id: str
+    local_filename: str
+    collected_at: datetime.datetime
+
+    source_url: Union[str, None]
+    tweet_id: Union[str, None]
+    tweet_username: Union[str, None]
+
+    tags: Union[List[ImageTag], None]
+    # embedding: Union[Vector, None] = None
+    # faces: Union[List[ImageFace], None] = None
+
+    @staticmethod
+    def from_doc(doc: Doc[Image]):
+        fields = doc.content.model_dump()
+        fields["id"] = doc.id
+        return ImageDto.model_validate(fields)
+
+
+class ListImagesResult(BaseModel):
+    data: List[ImageDto]
+    count: int
+    has_next_page: bool
+
+
 @app.get("/api/images")
-def list_images(page: int = 1, tag: Optional[str] = None):
+def list_images(page: int = 1, tag: Optional[str] = None) -> ListImagesResult:
     limit = 20
     offset = (page - 1) * limit
     image_repo = graph.get_instance(ImageRepo)
@@ -40,14 +68,11 @@ def list_images(page: int = 1, tag: Optional[str] = None):
         count = image_repo.count()
     has_next_page = len(images) > limit
     images = images[:limit]
-    # exclude embedding from response.
-    for image in images:
-        image.content.embedding = None
-    return {
-        "data": images,
-        "count": count,
-        "has_next_page": has_next_page,
-    }
+    return ListImagesResult(
+        data=list(map(ImageDto.from_doc, images)),
+        count=count,
+        has_next_page=has_next_page,
+    )
 
 
 @app.get("/api/images/{image_id}/similar")
@@ -67,11 +92,8 @@ def list_similar_images(image_id: str, count: int = 5):
         sim_image = image_repo.get(sim_id)
         if sim_image is None: continue
 
-        # exclude embedding from response.
-        sim_image.content.embedding = None
         result.append({
-            "id": sim_image.id,
-            "content": sim_image.content,
+            "image": ImageDto.from_doc(sim_image),
             "score": score,
         })
     

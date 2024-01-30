@@ -48,15 +48,15 @@ export function HomeComponent() {
                 <div className={`rounded border overflow-hidden ${image.id === selectedImage?.id ? "image-grid-item-selected" : "image-grid-item"}`}>
                   <a href="javascript:" className="d-block"
                     onClick={() => image.id === selectedImage?.id ? setSelectedImage(null) : setSelectedImage(image)}>
-                    <SmartImage src={`/images/${image.content.local_filename}`} />
+                    <SmartImage src={`/images/${image.local_filename}`} />
                   </a>
                 </div>
               </div>
             </HoverCard.HoverCardTrigger>
             <HoverCard.HoverCardContent className="HoverCardContent">
-              {image.content.tags && (
+              {image.tags && (
                 <div className="rounded bg-dark bg-opacity-75 text-white p-1 small">
-                  {image.content.tags?.map((tag: any) => tag.tag).join(", ")}
+                  {image.tags?.map((tag: any) => tag.tag).join(", ")}
                 </div>
               )}
             </HoverCard.HoverCardContent>
@@ -129,37 +129,63 @@ function DetailPanel({
     <div className="col-3 border-start p-2 position-sticky top-0 vh-100 overflow-y-auto bg-body-tertiary">
       <button type="button" className="btn-close float-end" aria-label="Close" onClick={onClose} />
 
-      {selectedImage.content.tweet_username && (
-        <p className="card-text">source: @{selectedImage.content.tweet_username}</p>
+      {selectedImage.tweet_username && (
+        <p className="card-text">source: @{selectedImage.tweet_username}</p>
       )}
 
+      {(selectedImage.faces?.length ?? 0) > 0 && (<>
+        <div className="mb-2 fw-bold">faces</div>
+        <div className="d-flex flex-wrap">
+          {selectedImage.faces.map((face: any) =>
+            <div className="me-2 mb-2" style={{
+              overflow: 'hidden',
+              height: 120,
+              width: face.width * (120 / face.height),
+            }}>
+              <div
+                style={{
+                  backgroundImage: `url(/images/${selectedImage.local_filename})`,
+                  backgroundPositionX: -face.x,
+                  backgroundPositionY: -face.y,
+                  width: face.width,
+                  height: face.height,
+                  backgroundRepeat: 'no-repeat',
+                  transform: `scale(${120 / face.height})`,
+                  transformOrigin: 'top left',
+                }}
+              />
+            </div>
+          )}
+        </div>
+      </>)}
+
+      <div className="my-2 fw-bold">similar</div>
       <div className="d-flex flex-wrap">
-        {similarImages.map((image: any) => (
+        {similarImages.map(({image, score}: any) => (
           <div className="me-2 mb-2">
-            <img src={`/images/${image.content.local_filename}`} style={{height: 120}} />
-            <br />{image.score.toFixed(3)}
+            <img src={`/images/${image.local_filename}`} style={{height: 120}} />
+            <br />{score.toFixed(3)}
           </div>
         ))}
       </div>
 
-      <p className="card-text">
-        {['RATING', 'CHARACTER', null].map(tagType => (
-          selectedImage.content.tags?.filter((tag: any) => tag.type === tagType).map((tag: any) => (
-            <div key={tag.tag} className="TagList-item">
-              <RootLink search={addTag(search, tag.tag)} className="link-underline-light">
-                {tag.tag}
-              </RootLink>
-              <span className="ps-2 text-secondary">{tag.score.toFixed(3)}</span>
-              <RootLink search={onlyTag(search, tag.tag)} className="ms-2 link-secondary">
-                only
-              </RootLink>
-              <RootLink search={addTag(search, "-" + tag.tag)} className="ms-1 link-secondary">
-                not
-              </RootLink>
-            </div>
-          ))
-        ))}
-      </p>
+      <div className="my-2 fw-bold">tags</div>
+      {['RATING', 'CHARACTER', null].map(tagType => (
+        selectedImage.tags?.filter((tag: any) => tag.type === tagType).map((tag: any) => (
+          <div key={tag.tag} className="TagList-item">
+            <RootLink search={addTag(search, tag.tag)} className="link-underline-light">
+              {tag.tag}
+            </RootLink>
+            <span className="ps-2 text-secondary">{tag.score.toFixed(3)}</span>
+            <RootLink search={onlyTag(search, tag.tag)} className="ms-2 link-secondary">
+              only
+            </RootLink>
+            <RootLink search={addTag(search, "-" + tag.tag)} className="ms-1 link-secondary">
+              not
+            </RootLink>
+          </div>
+        ))
+      ))}
     </div>
   )
 }

@@ -1,4 +1,4 @@
-from typing import ClassVar, Generic, TypeVar, Union
+from typing import ClassVar, Generic, Iterator, TypeVar, Union
 
 from pydantic import BaseModel
 from sqlalchemy import Row, select, insert, update, delete
@@ -39,6 +39,9 @@ class Repo(Generic[T]):
                 entries = [entry + (id, ) for entry in indexer.entries_extractor(doc)]
                 if entries:
                     self.db.execute(insert(index_table).values(entries))
+
+    def all(self) -> Iterator[Doc[T]]:
+        return (self._doc_from_row(row) for row in self.db.execute(select(self.table)))
     
     def _doc_from_row(self, row: Union[Row, None]) -> Union[Doc[T], None]:
         if row is None:

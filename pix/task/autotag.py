@@ -19,4 +19,4 @@ def main(
         result = autotagger.extract(f)
         image.content.tags = [ImageTag(tag=tag, type=type, score=score) for tag, type, score in result.tags]
         image.content.embedding = Vector.from_numpy(result.embedding)
-        image_repo.put(image.id, image.content)
+        image_repo.update(image)

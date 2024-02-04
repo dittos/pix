@@ -34,7 +34,7 @@ def main(
             score=face.score,
             local_filename=filename,
         ) for face, filename in zip(result, filenames)]
-        image_repo.put(image.id, image.content)
+        image_repo.update(image)
 
 
 def save_face_images(image: Doc[Image], faces: List[Face], images_dir: Path, face_images_dir: Path):

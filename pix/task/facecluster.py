@@ -69,4 +69,4 @@ def main(
                         embedding_hash="",  # TODO
                     )
                 )
-            face_cluster_repo.put(doc.id, doc.content)
+            face_cluster_repo.update(doc)

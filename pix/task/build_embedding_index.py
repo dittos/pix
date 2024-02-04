@@ -7,7 +7,7 @@ from pix.model.image import ImageRepo
 from pixdb.inject import Value
 
 
-def build_embedding_index(
+def main(
         image_repo: ImageRepo,
         data_dir: Annotated[Path, Value],
 ):

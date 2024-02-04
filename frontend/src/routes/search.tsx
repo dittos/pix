@@ -4,7 +4,7 @@ import { applyQuickFilters } from '../utils/tagQuery'
 import { addTag, clearTag, extractRootSearchParams, onlyTag, setQuickFilterState } from '../utils/search'
 import { RootLink, useExtractedSearchParams } from '../components/SearchLink'
 
-export const loader: LoaderFunction = async ({ request }) => {
+export const searchLoader: LoaderFunction = async ({ request }) => {
   const url = new URL(request.url)
   const search = extractRootSearchParams(url.searchParams)
   const {tag} = search
@@ -15,13 +15,13 @@ export const loader: LoaderFunction = async ({ request }) => {
   }
 }
 
-export function RootComponent() {
+export function SearchRoute() {
   const data = useLoaderData() as any
   return (
     <>
       <div className="container-fluid">
         <div className="row">
-          <div className="col-md-2 py-2 position-sticky top-0 vh-100 overflow-y-auto border-end">
+          <div className="col-md-2 py-2 vh-fill overflow-y-auto border-end">
             <TagList tags={data.tags} />
           </div>
           <div className="col">

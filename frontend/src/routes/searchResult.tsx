@@ -1,12 +1,11 @@
 import * as React from 'react'
 import { LoaderFunction, useLoaderData } from 'react-router-dom'
-import * as HoverCard from '@radix-ui/react-hover-card'
 import { useState } from 'react'
 import { applyQuickFilters } from '../utils/tagQuery'
 import { addTag, extractIndexSearchParams, extractRootSearchParams, onlyTag, removeTag } from '../utils/search'
 import { RootLink, useExtractedSearchParams } from '../components/SearchLink'
 
-export const loader: LoaderFunction = async ({ request }) => {
+export const searchResultLoader: LoaderFunction = async ({ request }) => {
   const url = new URL(request.url)
   const root = extractRootSearchParams(url.searchParams)
   const tag = applyQuickFilters(root.tag, root)
@@ -19,7 +18,7 @@ export const loader: LoaderFunction = async ({ request }) => {
   }
 }
 
-export function HomeComponent() {
+export function SearchResultRoute() {
   const {images} = useLoaderData() as any
   const search = useExtractedSearchParams(extractRootSearchParams)
   const {page = 1} = useExtractedSearchParams(extractIndexSearchParams)
@@ -42,25 +41,14 @@ export function HomeComponent() {
 
       <div className="d-flex flex-wrap">
         {images.data.map((image: any) => (
-          <HoverCard.HoverCard key={image.id} openDelay={0} closeDelay={0}>
-            <HoverCard.HoverCardTrigger>
-              <div className="me-2 mb-2">
-                <div className={`rounded border overflow-hidden ${image.id === selectedImage?.id ? "image-grid-item-selected" : "image-grid-item"}`}>
-                  <a href="javascript:" className="d-block"
-                    onClick={() => image.id === selectedImage?.id ? setSelectedImage(null) : setSelectedImage(image)}>
-                    <SmartImage src={`/images/${image.local_filename}`} />
-                  </a>
-                </div>
-              </div>
-            </HoverCard.HoverCardTrigger>
-            <HoverCard.HoverCardContent className="HoverCardContent">
-              {image.tags && (
-                <div className="rounded bg-dark bg-opacity-75 text-white p-1 small">
-                  {image.tags?.map((tag: any) => tag.tag).join(", ")}
-                </div>
-              )}
-            </HoverCard.HoverCardContent>
-          </HoverCard.HoverCard>
+          <div className="me-2 mb-2">
+            <div className={`rounded border overflow-hidden ${image.id === selectedImage?.id ? "image-grid-item-selected" : "image-grid-item"}`}>
+              <a href="javascript:" className="d-block"
+                onClick={() => image.id === selectedImage?.id ? setSelectedImage(null) : setSelectedImage(image)}>
+                <SmartImage src={`/images/${image.local_filename}`} />
+              </a>
+            </div>
+          </div>
         ))}
       </div>
 
@@ -108,7 +96,7 @@ function SmartImage(props: any) {
   }
   return (
     <div className={clip ? "image-clip" : undefined} style={{overflow: 'hidden', height, maxWidth: 480}}>
-      <img {...props} onLoad={onLoad} style={clip ? {width: minWidth} : {height}} />
+      <img key={props.src} {...props} onLoad={onLoad} style={clip ? {width: minWidth} : {height}} />
     </div>
   )
 }
@@ -119,41 +107,39 @@ function DetailPanel({
 }: any) {
   const search = useExtractedSearchParams(extractRootSearchParams)
   const [similarImages, setSimilarImages] = React.useState([])
+  const [faces, setFaces] = React.useState([])
   React.useEffect(() => {
     fetch(`/api/images/${encodeURIComponent(selectedImage.id)}/similar`)
       .then(r => r.json())
       .then(r => setSimilarImages(r))
+
+    fetch(`/api/images/${encodeURIComponent(selectedImage.id)}/faces`)
+      .then(r => r.json())
+      .then(r => setFaces(r))
   }, [selectedImage.id])
 
   return (
-    <div className="col-3 border-start p-2 position-sticky top-0 vh-100 overflow-y-auto bg-body-tertiary">
+    <div className="col-3 border-start p-2 vh-fill overflow-y-auto bg-body-tertiary">
       <button type="button" className="btn-close float-end" aria-label="Close" onClick={onClose} />
 
       {selectedImage.tweet_username && (
         <p className="card-text">source: @{selectedImage.tweet_username}</p>
       )}
 
-      {(selectedImage.faces?.length ?? 0) > 0 && (<>
+      {(faces?.length ?? 0) > 0 && (<>
         <div className="mb-2 fw-bold">faces</div>
+        {faces.filter((face: any) => face.face_cluster_id).map((face: any) =>
+          <div className="me-2 mb-2">
+            <img src={`/images/faces/${face.local_filename}`} style={{height: 120}} />
+            <span className="ms-2">
+              {face.face_cluster_label ?? face.face_cluster_id?.substring(0, 8)}
+            </span>
+          </div>
+        )}
         <div className="d-flex flex-wrap">
-          {selectedImage.faces.map((face: any) =>
-            <div className="me-2 mb-2" style={{
-              overflow: 'hidden',
-              height: 120,
-              width: face.width * (120 / face.height),
-            }}>
-              <div
-                style={{
-                  backgroundImage: `url(/images/${selectedImage.local_filename})`,
-                  backgroundPositionX: -face.x,
-                  backgroundPositionY: -face.y,
-                  width: face.width,
-                  height: face.height,
-                  backgroundRepeat: 'no-repeat',
-                  transform: `scale(${120 / face.height})`,
-                  transformOrigin: 'top left',
-                }}
-              />
+          {faces.filter((face: any) => !face.face_cluster_id).map((face: any) =>
+            <div className="me-2 mb-2" style={{opacity: 0.5}}>
+              <img src={`/images/faces/${face.local_filename}`} style={{height: 120}} />
             </div>
           )}
         </div>

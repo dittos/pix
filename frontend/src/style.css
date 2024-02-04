@@ -1,7 +1,11 @@
-.HoverCardContent {
-    max-width: 480px;
-    pointer-events: none;
-    z-index: 1000;
+:root {
+    --navbar-height: 3.5rem;
+}
+
+.vh-fill {
+    position: sticky;
+    top: var(--navbar-height);
+    height: calc(100vh - var(--navbar-height));
 }
 
 .image-grid-item-selected {

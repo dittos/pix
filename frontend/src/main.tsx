@@ -7,31 +7,44 @@ import {
 } from "react-router-dom"
 import './style.css'
 import 'bootstrap/dist/css/bootstrap.css'
-import { loader, RootComponent } from './routes/__root'
-import { HomeComponent, loader as homeLoader } from './routes'
+import { SearchRoute, searchLoader } from './routes/search'
+import { SearchResultRoute, searchResultLoader } from './routes/searchResult'
+import { FacesRoute, facesLoader } from './routes/faces'
 import { extractRootSearchParams } from './utils/search'
 import isEqual from 'lodash/isEqual'
+import { RootRoute } from './routes/root'
 
 const router = createBrowserRouter([
   {
     path: "/",
-    element: <Navigate to="/search" />,
-  },
-  {
-    path: "/search",
-    element: <RootComponent />,
-    loader,
-    shouldRevalidate: ({ currentUrl, nextUrl }) => {
-      return !isEqual(extractRootSearchParams(currentUrl.searchParams), extractRootSearchParams(nextUrl.searchParams))
-    },
+    element: <RootRoute />,
     children: [
       {
-        index: true,
-        element: <HomeComponent />,
-        loader: homeLoader
-      }
-    ]
-  },
+        path: "",
+        element: <Navigate to="/search" />,
+      },
+      {
+        path: "search",
+        element: <SearchRoute />,
+        loader: searchLoader,
+        shouldRevalidate: ({ currentUrl, nextUrl }) => {
+          return !isEqual(extractRootSearchParams(currentUrl.searchParams), extractRootSearchParams(nextUrl.searchParams))
+        },
+        children: [
+          {
+            index: true,
+            element: <SearchResultRoute />,
+            loader: searchResultLoader,
+          }
+        ]
+      },
+      {
+        path: "faces",
+        element: <FacesRoute />,
+        loader: facesLoader,
+      },
+    ],
+  }
 ])
 
 const rootElement = document.getElementById('root')!

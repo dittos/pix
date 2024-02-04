@@ -6,7 +6,7 @@ from pix.model.image import ImageRepo, ImageTag, Vector
 from pixdb.inject import Value
 
 
-def autotag(
+def main(
         image_repo: ImageRepo,
         autotagger: WdAutotagger,
         images_dir: Annotated[Path, Value],

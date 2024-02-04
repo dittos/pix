@@ -30,6 +30,13 @@ onnx = "^1.15.0"
 [tool.poetry.group.downloader-twitter-playwright.dependencies]
 playwright = "^1.41.0"
 
+[tool.poetry.group.autotagger-insightface.dependencies]
+insightface = "^0.7.3"
+onnxruntime = "^1.16.3"
+
+[tool.poetry.scripts]
+pix = "pix.manage:main"
+
 [build-system]
 requires = ["poetry-core"]
 build-backend = "poetry.core.masonry.api"

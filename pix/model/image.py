@@ -4,7 +4,7 @@ import datetime
 from enum import Enum
 import numpy as np
 import sqlalchemy as sa
-from typing import Iterator, List, Tuple, Union
+from typing import List, Tuple, Union
 from pydantic import BaseModel
 from pixdb.doc import Doc
 from pixdb.repo import Repo
@@ -36,6 +36,16 @@ class Vector(BaseModel):
         return np.frombuffer(base64.b64decode(self.data), dtype=self.dtype)
 
 
+class ImageFace(BaseModel):
+    x: int
+    y: int
+    width: int
+    height: int
+    embedding: Vector
+    score: float
+    local_filename: Union[str, None] = None
+
+
 class Image(BaseModel):
     local_filename: str
     collected_at: datetime.datetime
@@ -46,6 +56,7 @@ class Image(BaseModel):
 
     tags: Union[List[ImageTag], None] = None
     embedding: Union[Vector, None] = None
+    faces: Union[List[ImageFace], None] = None
 
 
 @dataclass

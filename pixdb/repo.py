@@ -39,6 +39,10 @@ class Repo(Generic[T]):
                 entries = [entry + (id, ) for entry in indexer.entries_extractor(doc)]
                 if entries:
                     self.db.execute(insert(index_table).values(entries))
+    
+    def update(self, doc: Doc[T]):
+        # TODO: optimistic locking
+        self.put(doc.id, doc.content)
 
     def all(self) -> Iterator[Doc[T]]:
         return (self._doc_from_row(row) for row in self.db.execute(select(self.table)))

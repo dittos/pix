@@ -1,4 +1,5 @@
 from pathlib import Path
+from typing import Type, TypeVar
 from typing_extensions import Annotated
 
 from sqlalchemy import Engine, create_engine
@@ -8,6 +9,8 @@ from pix.downloader.twitter_playwright import TwitterPlaywrightDownloader
 from pix.embedding_index import EmbeddingIndexManager
 from pix.model.base import metadata
 from pixdb.inject import Graph, Value
+
+T = TypeVar("T")
 
 
 def create_graph(debug: bool = False):
@@ -29,3 +32,13 @@ def create_graph(debug: bool = False):
     metadata.create_all(graph.get_instance(Engine))
 
     return graph
+
+
+class AppGraph:
+    @classmethod
+    def bind(cls, graph: Graph):
+        cls._graph = graph
+    
+    @classmethod
+    def get_instance(cls, type: Type[T]) -> T:
+        return cls._graph.get_instance(type)

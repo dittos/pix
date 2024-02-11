@@ -19,8 +19,8 @@ class TagType(Enum):
 
 class ImageTag(BaseModel):
     tag: str
-    score: Union[float, None]
     type: Union[TagType, None]
+    score: Union[float, None] = None
 
 
 class Vector(BaseModel):
@@ -55,8 +55,18 @@ class Image(BaseModel):
     tweet_username: Union[str, None] = None
 
     tags: Union[List[ImageTag], None] = None
+    manual_tags: Union[List[ImageTag], None] = None
     embedding: Union[Vector, None] = None
     faces: Union[List[ImageFace], None] = None
+
+    def get_all_tags(self) -> List[ImageTag]:
+        tags = []
+        if self.manual_tags:
+            for tag in self.manual_tags:
+                tags.append(tag.model_copy(update={"score": tag.score or 1.0}))
+        if self.tags:
+            tags.extend(self.tags)
+        return tags
 
 
 @dataclass
@@ -88,11 +98,11 @@ class ImageRepo(Repo[Image]):
     )
     idx_tag_new = schema.add_index_table(
         [IndexField("tag", sa.String), IndexField("collected_at", sa.DateTime, descending=True)],
-        lambda image: [(tag.tag, image.collected_at) for tag in image.tags] if image.tags else [],
+        lambda image: [(tag.tag, image.collected_at) for tag in image.get_all_tags()],
     )
     idx_tag_score = schema.add_index_table(
         [IndexField("tag", sa.String), IndexField("score", sa.Float, descending=True)],
-        lambda image: [(tag.tag, tag.score) for tag in image.tags] if image.tags else [],
+        lambda image: [(tag.tag, tag.score) for tag in image.get_all_tags()],
     )
     idx_needs_autotagging = schema.add_index_table(
         [IndexField("needs_autotagging", sa.Boolean)],

@@ -4,6 +4,9 @@ import { useState } from 'react'
 import { applyQuickFilters } from '../utils/tagQuery'
 import { addTag, extractIndexSearchParams, extractRootSearchParams, onlyTag, removeTag } from '../utils/search'
 import { RootLink, useExtractedSearchParams } from '../components/SearchLink'
+import { useCombobox } from 'downshift'
+import { useListUpdater } from '../utils/listUpdater'
+import { useRecentlyAddedManualTags } from '../utils/manualTags'
 
 export const searchResultLoader: LoaderFunction = async ({ request }) => {
   const url = new URL(request.url)
@@ -27,6 +30,14 @@ export function SearchResultRoute() {
     window.scrollTo(0, 0)
     setSelectedImage(null)
   }, [images])
+  const [imageList, updateImageInList] = useListUpdater<any>(images.data, obj => obj.id)
+  const updateImage = (image: any) => {
+    updateImageInList(image)
+    if (selectedImage?.id === image.id) {
+      setSelectedImage(image)
+    }
+  }
+
   return (
     <div className="d-flex">
       <div className="col py-2">
@@ -40,7 +51,7 @@ export function SearchResultRoute() {
       <p className="mb-4">total {images.count} images</p>
 
       <div className="d-flex flex-wrap">
-        {images.data.map((image: any) => (
+        {imageList.map((image: any) => (
           <div className="me-2 mb-2">
             <div className={`rounded border overflow-hidden ${image.id === selectedImage?.id ? "image-grid-item-selected" : "image-grid-item"}`}>
               <a href="javascript:" className="d-block"
@@ -72,6 +83,7 @@ export function SearchResultRoute() {
           key={selectedImage.id}
           selectedImage={selectedImage}
           onClose={() => setSelectedImage(null)}
+          updateImage={updateImage}
         />
       )}
     </div>
@@ -104,8 +116,8 @@ function SmartImage(props: any) {
 function DetailPanel({
   selectedImage,
   onClose,
+  updateImage,
 }: any) {
-  const search = useExtractedSearchParams(extractRootSearchParams)
   const [similarImages, setSimilarImages] = React.useState([])
   const [faces, setFaces] = React.useState([])
   React.useEffect(() => {
@@ -117,6 +129,29 @@ function DetailPanel({
       .then(r => r.json())
       .then(r => setFaces(r))
   }, [selectedImage.id])
+
+  const allTags = (selectedImage.manual_tags ?? []).concat(selectedImage.tags ?? [])
+
+  const [recentTags, addRecentTag] = useRecentlyAddedManualTags()
+  const addCharacterTag = (name: string) => {
+    const manualTags = selectedImage.manual_tags?.slice() ?? []
+    manualTags.push({
+      tag: name,
+      type: 'CHARACTER',
+    })
+    fetch(`/api/images/${selectedImage.id}/manual-tags`, {
+      method: 'PUT',
+      body: JSON.stringify({manual_tags: manualTags}),
+      headers: {'Content-Type': 'application/json'},
+    }).then(r => {
+      if (r.ok) return r.json()
+      else return r.json().then(e => { throw new Error(e.detail) })
+    }).then(r => {
+      updateImage(r)
+    }).catch(e => alert(e.message))
+
+    addRecentTag(name)
+  }
 
   return (
     <div className="col-3 border-start p-2 vh-fill overflow-y-auto bg-body-tertiary">
@@ -145,6 +180,15 @@ function DetailPanel({
         </div>
       </>)}
 
+      <div className="my-2 fw-bold">characters</div>
+      <div className="pb-2">
+        <TagList tags={allTags.filter((tag: any) => tag.type === 'CHARACTER')} />
+        <CharacterSelector onSelect={addCharacterTag} />
+        recently added: {recentTags.map(tag => (
+          <button key={tag} type="button" onClick={() => addCharacterTag(tag)}>+ {tag}</button>
+        ))}
+      </div>
+
       <div className="my-2 fw-bold">similar</div>
       <div className="d-flex flex-wrap">
         {similarImages.map(({image, score}: any) => (
@@ -156,22 +200,99 @@ function DetailPanel({
       </div>
 
       <div className="my-2 fw-bold">tags</div>
-      {['RATING', 'CHARACTER', null].map(tagType => (
-        selectedImage.tags?.filter((tag: any) => tag.type === tagType).map((tag: any) => (
-          <div key={tag.tag} className="TagList-item">
-            <RootLink search={addTag(search, tag.tag)} className="link-underline-light">
-              {tag.tag}
-            </RootLink>
-            <span className="ps-2 text-secondary">{tag.score.toFixed(3)}</span>
-            <RootLink search={onlyTag(search, tag.tag)} className="ms-2 link-secondary">
-              only
-            </RootLink>
-            <RootLink search={addTag(search, "-" + tag.tag)} className="ms-1 link-secondary">
-              not
-            </RootLink>
-          </div>
-        ))
+      {['RATING', null].map(tagType => (
+        <TagList key={tagType ?? ""} tags={allTags.filter((tag: any) => tag.type === tagType)} />
       ))}
+    </div>
+  )
+}
+
+function TagList({ tags }: any) {
+  const search = useExtractedSearchParams(extractRootSearchParams)
+  return tags.map((tag: any) => (
+    <div key={tag.tag} className="TagList-item">
+      <RootLink search={addTag(search, tag.tag)} className="link-underline-light">
+        {tag.tag}
+      </RootLink>
+      <span className="ps-2 text-secondary">{tag.score ? tag.score.toFixed(3) : ''}</span>
+      <RootLink search={onlyTag(search, tag.tag)} className="ms-2 link-secondary">
+        only
+      </RootLink>
+      <RootLink search={addTag(search, "-" + tag.tag)} className="ms-1 link-secondary">
+        not
+      </RootLink>
+    </div>
+  ))
+}
+
+function CharacterSelector({
+  onSelect
+}: any) {
+  const [items, setItems] = useState<any[]>([])
+  const {
+    isOpen,
+    getMenuProps,
+    getInputProps,
+    highlightedIndex,
+    getItemProps,
+    selectedItem,
+    reset,
+  } = useCombobox({
+    onInputValueChange({inputValue}) {
+      if (inputValue) {
+        fetch('/api/tags/character?' + new URLSearchParams({q: inputValue}))
+          .then(r => r.json())
+          .then(r => setItems(r))
+      } else {
+        setItems([])
+      }
+    },
+    onSelectedItemChange({selectedItem}) {
+      if (selectedItem) {
+        onSelect(selectedItem.name)
+      }
+      reset()
+    },
+    items,
+    itemToString(item) {
+      return item ? item.name : ''
+    },
+  })
+
+  return (
+    <div>
+      <div className="w-72 d-flex flex-column gap-1">
+        <div className="d-flex">
+          <input
+            placeholder="Add tag"
+            className="w-full p-1.5"
+            {...getInputProps()}
+          />
+        </div>
+      </div>
+      <ul
+        className={`position-absolute w-72 bg-white mt-1 shadow overflow-scroll p-0 z-10 ${
+          !(isOpen && items.length) && 'hidden'
+        }`}
+        style={{maxHeight: 300}}
+        {...getMenuProps()}
+      >
+        {isOpen &&
+          items.map((item, index) => (
+            <li
+              className={`
+                ${highlightedIndex === index ? 'bg-secondary-subtle' : ''}
+                ${selectedItem === item ? 'font-bold' : ''}
+                py-2 px-3 d-flex flex-col
+              `}
+              key={item.id}
+              {...getItemProps({item, index})}
+            >
+              <span>{item.name}</span>
+              <span className="ps-3 text-secondary">{item.danbooru_post_count}</span>
+            </li>
+          ))}
+      </ul>
     </div>
   )
 }

@@ -22,6 +22,7 @@ class ImageDto(BaseModel):
     tweet_username: Union[str, None]
 
     tags: Union[List[ImageTag], None]
+    manual_tags: Union[List[ImageTag], None]
     # embedding: Union[Vector, None] = None
     # faces: Union[List[ImageFace], None] = None
 
@@ -104,3 +105,26 @@ def list_image_faces(image_id: str):
         })
     
     return result
+
+
+class SetImageManualTagsRequest(BaseModel):
+    manual_tags: List[ImageTag]
+
+
+@images_router.put("/api/images/{image_id}/manual-tags")
+def set_image_manual_tags(image_id: str, request: SetImageManualTagsRequest):
+    image_repo = AppGraph.get_instance(ImageRepo)
+    image = image_repo.get(image_id)
+    if image is None:
+        raise HTTPException(404)
+    
+    seen_tag_names = set(tag.tag for tag in image.tags)
+    for tag in request.manual_tags:
+        if tag.tag in seen_tag_names:
+            raise HTTPException(400, f"Already added tag: {tag.tag}")
+        seen_tag_names.add(tag.tag)
+
+    image.manual_tags = request.manual_tags
+    image_repo.update(image)
+
+    return ImageDto.from_doc(image)

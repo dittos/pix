@@ -1,7 +1,6 @@
 import sqlalchemy as sa
 from typing import List, Union
 from pydantic import BaseModel
-from pixdb.doc import Doc
 from pixdb.repo import Repo
 
 from pixdb.schema import IndexField, Schema
@@ -15,6 +14,7 @@ class FaceClusterFace(BaseModel):
 
 
 class FaceCluster(BaseModel):
+    id: str
     label: Union[str, None]
     wikidata_qid: Union[str, None] = None
     faces: List[FaceClusterFace]
@@ -27,7 +27,7 @@ class FaceClusterRepo(Repo[FaceCluster]):
         lambda fc: [(face.image_id, face.index) for face in fc.faces]
     )
 
-    def get_by_face_ref(self, image_id: str, index: int) -> Union[Doc[FaceCluster], None]:
+    def get_by_face_ref(self, image_id: str, index: int) -> Union[FaceCluster, None]:
         fc = self.db.execute(
             sa.select(self.table)
                 .join(self.idx_face_ref, self.idx_face_ref.c.id == self.table.c.id)

@@ -15,8 +15,8 @@ def main(
 
     images = image_repo.list_needs_autotagging()
     for image in tqdm(images):
-        f = images_dir / image.content.local_filename
+        f = images_dir / image.local_filename
         result = autotagger.extract(f)
-        image.content.tags = [ImageTag(tag=tag, type=type, score=score) for tag, type, score in result.tags]
-        image.content.embedding = Vector.from_numpy(result.embedding)
+        image.tags = [ImageTag(tag=tag, type=type, score=score) for tag, type, score in result.tags]
+        image.embedding = Vector.from_numpy(result.embedding)
         image_repo.update(image)

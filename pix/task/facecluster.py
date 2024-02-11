@@ -14,11 +14,11 @@ def main(
     refs = []
     fcids = []
     embs = []
-    for doc in image_repo.all():
-        if not doc.content.faces: continue
-        for i, face in enumerate(doc.content.faces):
-            refs.append((doc.id, i))
-            fc = face_cluster_repo.get_by_face_ref(doc.id, i)
+    for image in image_repo.all():
+        if not image.faces: continue
+        for i, face in enumerate(image.faces):
+            refs.append((image.id, i))
+            fc = face_cluster_repo.get_by_face_ref(image.id, i)
             if fc:
                 fcids.append(fc.id)
             else:
@@ -40,7 +40,8 @@ def main(
     for fc in faces.values():
         if all(fcid is None for _, fcid in fc):
             fcid = uuid.uuid4().hex
-            face_cluster_repo.put(fcid, FaceCluster(
+            face_cluster_repo.update(FaceCluster(
+                id=fcid,
                 label=None,
                 faces=[
                     FaceClusterFace(
@@ -59,14 +60,14 @@ def main(
                 primary_fcid = fcid
             
             assert primary_fcid
-            doc = face_cluster_repo.get(primary_fcid)
+            primary_fc = face_cluster_repo.get(primary_fcid)
             for ref, fcid in fc:
                 if fcid: continue
-                doc.content.faces.append(
+                primary_fc.faces.append(
                     FaceClusterFace(
                         image_id=ref[0],
                         index=ref[1],
                         embedding_hash="",  # TODO
                     )
                 )
-            face_cluster_repo.update(doc)
+            face_cluster_repo.update(primary_fc)

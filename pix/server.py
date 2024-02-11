@@ -10,7 +10,6 @@ from pix.config import Settings
 from pix.embedding_index import EmbeddingIndexManager
 from pix.model.face_cluster import FaceClusterRepo
 from pix.model.image import Image, ImageFace, ImageRepo, ImageTag
-from pixdb.doc import Doc
 
 
 app = FastAPI()
@@ -45,9 +44,8 @@ class ImageDto(BaseModel):
     # faces: Union[List[ImageFace], None] = None
 
     @staticmethod
-    def from_doc(doc: Doc[Image]):
-        fields = doc.content.model_dump()
-        fields["id"] = doc.id
+    def from_doc(image: Image):
+        fields = image.model_dump()
         return ImageDto.model_validate(fields)
 
 
@@ -84,12 +82,12 @@ def list_similar_images(image_id: str, count: int = 5):
     if image is None:
         raise HTTPException(404)
     
-    if image.content.embedding is None:
+    if image.embedding is None:
         return []
 
     index = graph.get_instance(EmbeddingIndexManager)
     result = []
-    for sim_id, score in index.search(image.content.embedding.to_numpy(), count + 1):
+    for sim_id, score in index.search(image.embedding.to_numpy(), count + 1):
         if sim_id == image_id: continue
         sim_image = image_repo.get(sim_id)
         if sim_image is None: continue
@@ -109,18 +107,18 @@ def list_image_faces(image_id: str):
     if image is None:
         raise HTTPException(404)
     
-    if not image.content.faces:
+    if not image.faces:
         return []
 
     fc_repo = graph.get_instance(FaceClusterRepo)
     result = []
-    for i, face in enumerate(image.content.faces):
+    for i, face in enumerate(image.faces):
         fc = fc_repo.get_by_face_ref(image.id, i)
         result.append({
             "index": i,
             "local_filename": face.local_filename,
             "face_cluster_id": fc.id if fc else None,
-            "face_cluster_label": fc.content.label if fc else None,
+            "face_cluster_label": fc.label if fc else None,
         })
     
     return result
@@ -140,13 +138,13 @@ def list_face_clusters() -> List[FaceClusterDto]:
     image_repo = graph.get_instance(ImageRepo)
     result = []
     for fc in fc_repo.all():
-        face = fc.content.faces[0]
+        face = fc.faces[0]
         result.append(FaceClusterDto(
             id=fc.id,
-            label=fc.content.label,
-            wikidata_qid=fc.content.wikidata_qid,
-            face_count=len(fc.content.faces),
-            faces=[image_repo.get(face.image_id).content.faces[face.index]],
+            label=fc.label,
+            wikidata_qid=fc.wikidata_qid,
+            face_count=len(fc.faces),
+            faces=[image_repo.get(face.image_id).faces[face.index]],
         ))
     result.sort(key=lambda fc: fc.face_count, reverse=True)
     return result
@@ -158,12 +156,12 @@ def get_face_cluster(face_cluster_id: str) -> FaceClusterDto:
     face_cluster = fc_repo.get(face_cluster_id)
     image_repo = graph.get_instance(ImageRepo)
     faces = []
-    for face in face_cluster.content.faces:
-        faces.append(image_repo.get(face.image_id).content.faces[face.index])
+    for face in face_cluster.faces:
+        faces.append(image_repo.get(face.image_id).faces[face.index])
     return FaceClusterDto(
         id=face_cluster.id,
-        label=face_cluster.content.label,
-        wikidata_qid=face_cluster.content.wikidata_qid,
+        label=face_cluster.label,
+        wikidata_qid=face_cluster.wikidata_qid,
         face_count=len(faces),
         faces=faces,
     )
@@ -183,24 +181,24 @@ def set_face_cluster_label(face_cluster_id: str, request: SetFaceClusterLabelReq
     r = requests.get(f"https://www.wikidata.org/entity/{request.wikidata_qid}.json")
     r.raise_for_status()
     entity = r.json()["entities"][request.wikidata_qid]
-    face_cluster.content.wikidata_qid = request.wikidata_qid
+    face_cluster.wikidata_qid = request.wikidata_qid
     label = None
     for lang in "ko", "en":
         label_dict = entity["labels"].get(lang)
         if label_dict:
             label = label_dict["value"]
             break
-    face_cluster.content.label = label
+    face_cluster.label = label
     fc_repo.update(face_cluster)
 
     image_repo = graph.get_instance(ImageRepo)
     faces = []
-    for face in face_cluster.content.faces:
-        faces.append(image_repo.get(face.image_id).content.faces[face.index])
+    for face in face_cluster.faces:
+        faces.append(image_repo.get(face.image_id).faces[face.index])
     return FaceClusterDto(
         id=face_cluster.id,
-        label=face_cluster.content.label,
-        wikidata_qid=face_cluster.content.wikidata_qid,
+        label=face_cluster.label,
+        wikidata_qid=face_cluster.wikidata_qid,
         face_count=len(faces),
         faces=faces,
     )

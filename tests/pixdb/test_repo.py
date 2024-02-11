@@ -3,7 +3,6 @@ from typing import List
 from pydantic import BaseModel
 from sqlalchemy import BigInteger, MetaData, String, create_engine, select
 from pixdb.db import Database
-from pixdb.doc import Doc
 
 from pixdb.schema import IndexField, Schema
 from pixdb.repo import Repo
@@ -18,21 +17,23 @@ def test_index():
     assert image_repo.get("1") is None
     now = datetime.datetime.now(tz=datetime.timezone.utc)
     image = Image(
+        id="1",
         created_at=now,
         tags=[ImageTag(name="red", score=0.5), ImageTag(name="big", score=0.44)]
     )
-    image_repo.put("1", image)
-    assert image_repo.get("1") == Doc(id="1", content=image)
+    image_repo.update(image)
+    assert image_repo.get("1") == image
     
     image2 = Image(
+        id="2",
         created_at=now - datetime.timedelta(days=1),
         tags=[]
     )
-    image_repo.put("2", image2)
+    image_repo.update(image2)
 
     image2.tags.append(ImageTag(name="big", score=0.1))
-    image_repo.put("2", image2)
-    assert image_repo.get("2").content == image2
+    image_repo.update(image2)
+    assert image_repo.get("2") == image2
 
     idx_created_at = ImageRepo.idx_created_at
     r = db.execute(
@@ -52,6 +53,7 @@ class ImageTag(BaseModel):
 
 
 class Image(BaseModel):
+    id: str
     created_at: datetime.datetime
     tags: List[ImageTag]
 

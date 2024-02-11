@@ -14,8 +14,8 @@ def main(
     index = EmbeddingIndex()
 
     for image in tqdm(image_repo.all()):
-        if not image.content.embedding: continue
-        emb = image.content.embedding.to_numpy()
+        if not image.embedding: continue
+        emb = image.embedding.to_numpy()
         index.add(image.id, emb)
 
     embedding_index_dir = data_dir / "emb-index"

@@ -5,7 +5,6 @@ from PIL import Image as PILImage
 from tqdm.auto import tqdm
 from pix.autotagger.insightface import Face, InsightFaceAutotagger
 from pix.model.image import Image, ImageFace, ImageRepo, Vector
-from pixdb.doc import Doc
 from pixdb.inject import Value
 
 
@@ -21,11 +20,11 @@ def main(
     # TODO: make index on `faces is None`
     images = image_repo.list_by_tag_collected_at_desc("realistic", 0, 1000)
     for image in tqdm(images):
-        if image.content.faces is not None: continue
-        f = images_dir / image.content.local_filename
+        if image.faces is not None: continue
+        f = images_dir / image.local_filename
         result = autotagger.extract(f)
         filenames = save_face_images(image, result, images_dir, face_images_dir)
-        image.content.faces = [ImageFace(
+        image.faces = [ImageFace(
             x=face.x,
             y=face.y,
             width=face.width,
@@ -37,9 +36,9 @@ def main(
         image_repo.update(image)
 
 
-def save_face_images(image: Doc[Image], faces: List[Face], images_dir: Path, face_images_dir: Path):
+def save_face_images(image: Image, faces: List[Face], images_dir: Path, face_images_dir: Path):
     filenames = []
-    with PILImage.open(images_dir / image.content.local_filename) as im:
+    with PILImage.open(images_dir / image.local_filename) as im:
         for i, face in enumerate(faces):
             filename = f"{image.id}.{i}.jpg"
             face_im = im.crop((face.x, face.y, face.x + face.width, face.y + face.height))

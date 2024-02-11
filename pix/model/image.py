@@ -6,7 +6,6 @@ import numpy as np
 import sqlalchemy as sa
 from typing import List, Tuple, Union
 from pydantic import BaseModel
-from pixdb.doc import Doc
 from pixdb.repo import Repo
 
 from pixdb.schema import IndexField, Schema
@@ -47,6 +46,7 @@ class ImageFace(BaseModel):
 
 
 class Image(BaseModel):
+    id: str
     local_filename: str
     collected_at: datetime.datetime
 
@@ -102,7 +102,7 @@ class ImageRepo(Repo[Image]):
     def count(self) -> int:
         return self.db.execute(sa.select(sa.func.count()).select_from(self.table)).first()[0]
 
-    def list_by_collected_at_desc(self, offset: int, limit: int) -> List[Doc[Image]]:
+    def list_by_collected_at_desc(self, offset: int, limit: int) -> List[Image]:
         return [self._doc_from_row(row) for row in self.db.execute(
             sa.select(self.table)
                 .join(self.idx_collected_at, self.table.c.id == self.idx_collected_at.c.id)
@@ -111,7 +111,7 @@ class ImageRepo(Repo[Image]):
                 .limit(limit)
         )]
 
-    def list_by_tag_collected_at_desc(self, tag: str, offset: int, limit: int) -> List[Doc[Image]]:
+    def list_by_tag_collected_at_desc(self, tag: str, offset: int, limit: int) -> List[Image]:
         return [self._doc_from_row(row) for row in self.db.execute(
             sa.select(self.table)
                 .join(self.idx_collected_at, self.idx_collected_at.c.id == self.table.c.id)
@@ -138,7 +138,7 @@ class ImageRepo(Repo[Image]):
                 clauses.append(table.c.id.in_(q))
         return clauses
     
-    def list_needs_autotagging(self) -> List[Doc[Image]]:
+    def list_needs_autotagging(self) -> List[Image]:
         return [self._doc_from_row(row) for row in self.db.execute(
             sa.select(self.table)
                 .join(self.idx_needs_autotagging, self.table.c.id == self.idx_needs_autotagging.c.id)

@@ -12,8 +12,8 @@ def test_list_by_tag_collected_at_desc():
     metadata.create_all(engine)
     image_repo = ImageRepo(db)
 
-    image_repo.put("a", _new_image(["a"]))
-    image_repo.put("ab", _new_image(["a", "b"]))
+    image_repo.update(_new_image("a", ["a"]))
+    image_repo.update(_new_image("ab", ["a", "b"]))
 
     assert set(doc.id for doc in image_repo.list_by_tag_collected_at_desc("a", 0, 10)) == {"a", "ab"}
     assert set(doc.id for doc in image_repo.list_by_tag_collected_at_desc("a b", 0, 10)) == {"ab"}
@@ -21,8 +21,9 @@ def test_list_by_tag_collected_at_desc():
     assert set(doc.id for doc in image_repo.list_by_tag_collected_at_desc("-b", 0, 10)) == {"a"}
 
 
-def _new_image(tags: List[str]):
+def _new_image(id: str, tags: List[str]):
     return Image(
+        id=id,
         local_filename="",
         collected_at=datetime.datetime.now(),
 

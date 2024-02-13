@@ -130,7 +130,7 @@ function DetailPanel({
       .then(r => setFaces(r))
   }, [selectedImage.id])
 
-  const allTags = (selectedImage.manual_tags ?? []).concat(selectedImage.tags ?? [])
+  const allTags = (selectedImage.manual_tags?.map((it: any) => ({...it, is_manual: true})) ?? []).concat(selectedImage.tags ?? [])
 
   const [recentTags, addRecentTag] = useRecentlyAddedManualTags()
   const addCharacterTag = (name: string) => {
@@ -151,6 +151,19 @@ function DetailPanel({
     }).catch(e => alert(e.message))
 
     addRecentTag(name)
+  }
+  const removeCharacterTag = (name: string) => {
+    const manualTags = selectedImage.manual_tags?.filter((tag: any) => tag.tag !== name) ?? []
+    fetch(`/api/images/${selectedImage.id}/manual-tags`, {
+      method: 'PUT',
+      body: JSON.stringify({manual_tags: manualTags}),
+      headers: {'Content-Type': 'application/json'},
+    }).then(r => {
+      if (r.ok) return r.json()
+      else return r.json().then(e => { throw new Error(e.detail) })
+    }).then(r => {
+      updateImage(r)
+    }).catch(e => alert(e.message))
   }
 
   return (
@@ -182,7 +195,10 @@ function DetailPanel({
 
       <div className="my-2 fw-bold">characters</div>
       <div className="pb-2">
-        <TagList tags={allTags.filter((tag: any) => tag.type === 'CHARACTER')} />
+        <TagList
+          tags={allTags.filter((tag: any) => tag.type === 'CHARACTER')}
+          onRemove={(tag: any) => removeCharacterTag(tag)}
+        />
         <CharacterSelector onSelect={addCharacterTag} />
         recently added: {recentTags.map(tag => (
           <button key={tag} type="button" onClick={() => addCharacterTag(tag)}>+ {tag}</button>
@@ -207,10 +223,11 @@ function DetailPanel({
   )
 }
 
-function TagList({ tags }: any) {
+function TagList({ tags, onRemove }: any) {
   const search = useExtractedSearchParams(extractRootSearchParams)
   return tags.map((tag: any) => (
     <div key={tag.tag} className="TagList-item">
+      {tag.is_manual && onRemove && <a href="#" onClick={e => { e.preventDefault(); onRemove(tag.tag) }} className="link-danger me-1">X</a>}
       <RootLink search={addTag(search, tag.tag)} className="link-underline-light">
         {tag.tag}
       </RootLink>

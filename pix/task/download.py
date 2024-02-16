@@ -39,10 +39,11 @@ class DownloadTask:
                 if pages is not None and tweet.created_at:
                     collected_at = tweet.created_at
                 
-                image_id = "tw." + image.local_filename.rsplit(".", 1)[0]
+                local_filename = attachment.make_local_filename()
+                image_id = "tw." + local_filename.rsplit(".", 1)[0]
                 image = Image(
                     id=image_id,
-                    local_filename=attachment.make_local_filename(),
+                    local_filename=local_filename,
                     collected_at=collected_at,
                     source_url=attachment.url,
                     tweet_id=tweet.id,

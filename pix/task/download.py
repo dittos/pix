@@ -1,4 +1,5 @@
 import datetime
+import logging
 import time
 from typing import List, Tuple, Union
 import requests
@@ -8,6 +9,8 @@ from pix.downloader.twitter_base import TwitterDownloader
 from pix.model.image import Image, ImageRepo
 from pix.model.tweet import Attachment, Tweet, TweetRepo
 from pixdb.db import Database
+
+logger = logging.getLogger(__name__)
 
 
 class DownloadTask:
@@ -68,7 +71,7 @@ class DownloadTask:
                 found_saved = False
                 for tweet in result.tweets:
                     if self.tweet_repo.get(tweet.id):
-                        print(f"saved tweet found: {tweet.id}")
+                        logger.info(f"saved tweet found: {tweet.id}")
                         found_saved = True
                     else:
                         tweets.append(tweet)
@@ -84,7 +87,7 @@ class DownloadTask:
             for attachment in tweet.attachments:
                 download_path = self.settings.images_dir / attachment.make_local_filename()
                 if download_path.exists():
-                    print(f"already exists: {download_path.name}")
+                    logger.info(f"already exists: {download_path.name}")
                 else:
                     r = requests.get(attachment.url)
                     # if not r.ok:

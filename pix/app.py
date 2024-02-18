@@ -1,9 +1,12 @@
+import logging
 from pathlib import Path
 from typing import Type, TypeVar
 from typing_extensions import Annotated
 
 from sqlalchemy import Engine, create_engine
+from apscheduler.schedulers.background import BackgroundScheduler
 from pix.config import Settings
+from pix.pipeline import run_pipeline
 from pix.downloader.twitter_base import TwitterDownloader
 from pix.downloader.twitter_playwright import TwitterPlaywrightDownloader
 from pix.embedding_index import EmbeddingIndexManager
@@ -28,8 +31,19 @@ def create_graph(debug: bool = False):
         return EmbeddingIndexManager(data_dir / "emb-index")
     
     graph.bind_factory(EmbeddingIndexManager, embedding_index_factory)
+
+    def scheduler_factory(graph: Graph):
+        scheduler = BackgroundScheduler()
+        scheduler.add_job(run_pipeline, args=[graph], trigger="cron", hour="*", minute="10")
+        return scheduler
+
+    graph.bind_factory(BackgroundScheduler, scheduler_factory)
+
+    graph.bind_instance(Graph, graph)
     
     metadata.create_all(graph.get_instance(Engine))
+
+    logging.basicConfig(level=logging.INFO)
 
     return graph
 

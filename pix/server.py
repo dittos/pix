@@ -22,7 +22,7 @@ async def lifespan(_: FastAPI):
 
 
 app = FastAPI(lifespan=lifespan)
-app.mount("/images", StaticFiles(directory=graph.get_instance(Settings).images_dir), name="images")
+app.mount("/_images", StaticFiles(directory=graph.get_instance(Settings).images_dir), name="images")
 
 app.include_router(tags_router)
 app.include_router(images_router)

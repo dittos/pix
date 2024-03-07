@@ -45,7 +45,7 @@ export function SearchResultRoute() {
           <div className="me-2 mb-2">
             <div className={`rounded border overflow-hidden image-grid-item`}>
               <Link to={{pathname: `images/${encodeURIComponent(image.id)}`, search: location.search}} className="d-block">
-                <SmartImage src={`/images/${image.local_filename}`} />
+                <SmartImage src={`/_images/${image.local_filename}`} />
               </Link>
             </div>
           </div>

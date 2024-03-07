@@ -44,7 +44,7 @@ function DetailOverlay({
           </div>
         )}
         <div className="col p-4">
-          <img src={`/images/${selectedImage.local_filename}`} style={{width: '100%', height: '100%', objectFit: 'scale-down'}} />
+          <img src={`/_images/${selectedImage.local_filename}`} style={{width: '100%', height: '100%', objectFit: 'scale-down'}} />
         </div>
         <DetailOverlaySidebar
           bsTheme={isModal ? "dark" : ""}
@@ -125,7 +125,7 @@ function DetailOverlaySidebar({
         <div className="mb-2 fw-bold">faces</div>
         {faces.filter((face: any) => face.face_cluster_id).map((face: any) =>
           <div className="me-2 mb-2">
-            <img src={`/images/faces/${face.local_filename}`} style={{height: 120}} />
+            <img src={`/_images/faces/${face.local_filename}`} style={{height: 120}} />
             <span className="ms-2">
               {face.face_cluster_label ?? face.face_cluster_id?.substring(0, 8)}
             </span>
@@ -134,7 +134,7 @@ function DetailOverlaySidebar({
         <div className="d-flex flex-wrap">
           {faces.filter((face: any) => !face.face_cluster_id).map((face: any) =>
             <div className="me-2 mb-2" style={{opacity: 0.5}}>
-              <img src={`/images/faces/${face.local_filename}`} style={{height: 120}} />
+              <img src={`/_images/faces/${face.local_filename}`} style={{height: 120}} />
             </div>
           )}
         </div>
@@ -156,8 +156,8 @@ function DetailOverlaySidebar({
       <div className="d-flex flex-wrap">
         {similarImages.map(({image, score}: any) => (
           <div className="me-2 mb-2">
-            <Link to={`/i/${image.id}`}>
-              <img src={`/images/${image.local_filename}`} style={{height: 120}} />
+            <Link to={`/images/${image.id}`}>
+              <img src={`/_images/${image.local_filename}`} style={{height: 120}} />
               <br />{score.toFixed(3)}
             </Link>
           </div>

@@ -6,7 +6,7 @@ export default defineConfig({
   server: {
     proxy: {
       '/api': 'http://localhost:8888',
-      '/images': 'http://localhost:8888',
+      '/_images': 'http://localhost:8888',
     }
   },
   plugins: [

@@ -33,7 +33,7 @@ export const FacesRoute = () => {
                   <div style={{
                     border: selected?.id === cluster.id ? '2px solid red' : ''
                   }} onClick={() => setSelected(cluster)}>
-                    <img src={`/images/faces/${face.local_filename}`} style={{height: 120}} />
+                    <img src={`/_images/faces/${face.local_filename}`} style={{height: 120}} />
                   </div>
                 </div>
               )
@@ -53,8 +53,8 @@ export const FacesRoute = () => {
               {cluster.faces.map(({image_id, face}: any) => {
                 return (
                   <div className="me-2 mb-2" key={`${face.local_filename}`}>
-                    <Link to={`/i/${encodeURIComponent(image_id)}`}>
-                      <img src={`/images/faces/${face.local_filename}`} style={{height: 120}} />
+                    <Link to={`/images/${encodeURIComponent(image_id)}`}>
+                      <img src={`/_images/faces/${face.local_filename}`} style={{height: 120}} />
                     </Link>
                   </div>
                 )

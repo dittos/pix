@@ -47,7 +47,7 @@ const router = createBrowserRouter([
         ]
       },
       {
-        path: "i/:imageId",
+        path: "images/:imageId",
         element: <ImageDetailRoute />,
         loader: imageDetailLoader,
       },

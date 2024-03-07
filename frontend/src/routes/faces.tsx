@@ -1,5 +1,5 @@
 import * as React from "react"
-import { useLoaderData } from "react-router-dom"
+import { Link, useLoaderData } from "react-router-dom"
 
 export const facesLoader = async () => {
   return fetch("/api/face-clusters")
@@ -26,7 +26,7 @@ export const FacesRoute = () => {
         <div className="col py-3">
           <div className="d-flex flex-wrap">
             {clusters.map((cluster: any) => {
-              const face = cluster.faces[0]
+              const face = cluster.faces[0].face
               return (
                 <div key={cluster.id} className="me-2 mb-2">
                   {cluster.label ?? cluster.id.substring(0, 8)} ({cluster.face_count})<br />
@@ -50,10 +50,12 @@ export const FacesRoute = () => {
             <SetLabelForm faceCluster={cluster} onUpdate={(c: any) => setCluster(c) /* TODO: update list */} />
 
             <div className="d-flex flex-wrap">
-              {cluster.faces.map((face: any) => {
+              {cluster.faces.map(({image_id, face}: any) => {
                 return (
                   <div className="me-2 mb-2" key={`${face.local_filename}`}>
-                    <img src={`/images/faces/${face.local_filename}`} style={{height: 120}} />
+                    <Link to={`/i/${encodeURIComponent(image_id)}`}>
+                      <img src={`/images/faces/${face.local_filename}`} style={{height: 120}} />
+                    </Link>
                   </div>
                 )
               })}

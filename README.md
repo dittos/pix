@@ -22,4 +22,3 @@ I made it to easily find images in the tweets I liked. It automatically scrapes 
 
 * Train custom autotaggers for the characters that can't be identified in the pre-trained model _(in progress)_
 * Alternative embedding models for image similarity search
-* Improve UI to provide more links to entities

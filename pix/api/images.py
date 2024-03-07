@@ -58,6 +58,16 @@ def list_images(page: int = 1, tag: Optional[str] = None) -> ListImagesResult:
     )
 
 
+@images_router.get("/api/images/{image_id}")
+def get_image(image_id: str):
+    image_repo = AppGraph.get_instance(ImageRepo)
+    image = image_repo.get(image_id)
+    if image is None:
+        raise HTTPException(404)
+    
+    return ImageDto.from_doc(image)
+
+
 @images_router.get("/api/images/{image_id}/similar")
 def list_similar_images(image_id: str, count: int = 5):
     image_repo = AppGraph.get_instance(ImageRepo)

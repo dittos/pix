@@ -10,12 +10,17 @@ from pix.model.image import ImageFace, ImageRepo
 face_clusters_router = APIRouter()
 
 
+class FaceClusterFaceDto(BaseModel):
+    image_id: str
+    face: ImageFace
+
+
 class FaceClusterDto(BaseModel):
     id: str
     label: Union[str, None]
     wikidata_qid: Union[str, None]
     face_count: Union[int, None]
-    faces: List[ImageFace]
+    faces: List[FaceClusterFaceDto]
 
 
 @face_clusters_router.get("/api/face-clusters")
@@ -30,7 +35,10 @@ def list_face_clusters() -> List[FaceClusterDto]:
             label=fc.label,
             wikidata_qid=fc.wikidata_qid,
             face_count=len(fc.faces),
-            faces=[image_repo.get(face.image_id).faces[face.index]],
+            faces=[FaceClusterFaceDto(
+                image_id=face.image_id,
+                face=image_repo.get(face.image_id).faces[face.index],
+            )],
         ))
     result.sort(key=lambda fc: fc.face_count, reverse=True)
     return result
@@ -43,7 +51,10 @@ def get_face_cluster(face_cluster_id: str) -> FaceClusterDto:
     image_repo = AppGraph.get_instance(ImageRepo)
     faces = []
     for face in face_cluster.faces:
-        faces.append(image_repo.get(face.image_id).faces[face.index])
+        faces.append(FaceClusterFaceDto(
+            image_id=face.image_id,
+            face=image_repo.get(face.image_id).faces[face.index],
+        ))
     return FaceClusterDto(
         id=face_cluster.id,
         label=face_cluster.label,
@@ -80,7 +91,10 @@ def set_face_cluster_label(face_cluster_id: str, request: SetFaceClusterLabelReq
     image_repo = AppGraph.get_instance(ImageRepo)
     faces = []
     for face in face_cluster.faces:
-        faces.append(image_repo.get(face.image_id).faces[face.index])
+        faces.append(FaceClusterFaceDto(
+            image_id=face.image_id,
+            face=image_repo.get(face.image_id).faces[face.index],
+        ))
     return FaceClusterDto(
         id=face_cluster.id,
         label=face_cluster.label,

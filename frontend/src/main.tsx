@@ -13,6 +13,7 @@ import { FacesRoute, facesLoader } from './routes/faces'
 import { extractRootSearchParams } from './utils/search'
 import isEqual from 'lodash/isEqual'
 import { RootRoute } from './routes/root'
+import { imageDetailLoader, ImageDetailRoute } from './routes/imageDetail'
 
 const router = createBrowserRouter([
   {
@@ -32,11 +33,23 @@ const router = createBrowserRouter([
         },
         children: [
           {
-            index: true,
+            path: "",
             element: <SearchResultRoute />,
             loader: searchResultLoader,
+            children: [
+              {
+                path: "images/:imageId",
+                element: <ImageDetailRoute parentContext="searchResult" />,
+                loader: imageDetailLoader,
+              }
+            ]
           }
         ]
+      },
+      {
+        path: "i/:imageId",
+        element: <ImageDetailRoute />,
+        loader: imageDetailLoader,
       },
       {
         path: "faces",

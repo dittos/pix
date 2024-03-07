@@ -79,7 +79,7 @@ export function SearchResultRoute() {
       </div>
 
       {selectedImage && (
-        <DetailPanel
+        <DetailOverlay
           key={selectedImage.id}
           selectedImage={selectedImage}
           onClose={() => setSelectedImage(null)}
@@ -87,6 +87,30 @@ export function SearchResultRoute() {
         />
       )}
     </div>
+  )
+}
+
+function DetailOverlay({
+  selectedImage,
+  onClose,
+  updateImage,
+}: any) {
+  return (
+    <>
+      <div className="modal fade show d-flex" style={{display: 'block'}}>
+        <div data-bs-theme="dark" className="fixed-top p-2" style={{width: '5%'}}>
+          <button type="button" className="btn-close" aria-label="Close" onClick={onClose} />
+        </div>
+        <div className="col p-4">
+          <img src={`/images/${selectedImage.local_filename}`} style={{width: '100%', height: '100%', objectFit: 'scale-down'}} />
+        </div>
+        <DetailOverlaySidebar
+          selectedImage={selectedImage}
+          updateImage={updateImage}
+        />
+      </div>
+      <div className="modal-backdrop" />
+    </>
   )
 }
 
@@ -113,9 +137,8 @@ function SmartImage(props: any) {
   )
 }
 
-function DetailPanel({
+function DetailOverlaySidebar({
   selectedImage,
-  onClose,
   updateImage,
 }: any) {
   const [similarImages, setSimilarImages] = React.useState([])
@@ -166,12 +189,15 @@ function DetailPanel({
     }).catch(e => alert(e.message))
   }
 
-  return (
-    <div className="col-3 border-start p-2 vh-fill overflow-y-auto bg-body-tertiary">
-      <button type="button" className="btn-close float-end" aria-label="Close" onClick={onClose} />
-
-      {selectedImage.tweet_username && (
-        <p className="card-text">source: @{selectedImage.tweet_username}</p>
+  return (<>
+    <div className="col-2 p-2 overflow-y-auto" data-bs-theme="dark" style={{fontSize: '0.9rem'}}>
+      {['RATING', null].map(tagType => (
+        <TagList key={tagType ?? ""} tags={allTags.filter((tag: any) => tag.type === tagType)} primaryLinkClassName="link-light" />
+      ))}
+    </div>
+    <div className="col-3 border-start p-2 overflow-y-auto bg-body-tertiary">
+      {selectedImage.tweet_id && selectedImage.tweet_username && (
+        <p className="card-text">source: <a href={`https://twitter.com/_/status/${selectedImage.tweet_id}`} target="_blank">@{selectedImage.tweet_username}</a></p>
       )}
 
       {(faces?.length ?? 0) > 0 && (<>
@@ -214,21 +240,17 @@ function DetailPanel({
           </div>
         ))}
       </div>
-
-      <div className="my-2 fw-bold">tags</div>
-      {['RATING', null].map(tagType => (
-        <TagList key={tagType ?? ""} tags={allTags.filter((tag: any) => tag.type === tagType)} />
-      ))}
-    </div>
+      </div>
+    </>
   )
 }
 
-function TagList({ tags, onRemove }: any) {
+function TagList({ tags, onRemove, primaryLinkClassName }: any) {
   const search = useExtractedSearchParams(extractRootSearchParams)
   return tags.map((tag: any) => (
     <div key={tag.tag} className="TagList-item">
       {tag.is_manual && onRemove && <a href="#" onClick={e => { e.preventDefault(); onRemove(tag.tag) }} className="link-danger me-1">X</a>}
-      <RootLink search={addTag(search, tag.tag)} className="link-underline-light">
+      <RootLink search={addTag(search, tag.tag)} className={primaryLinkClassName}>
         {tag.tag}
       </RootLink>
       <span className="ps-2 text-secondary">{tag.score ? tag.score.toFixed(3) : ''}</span>

@@ -4,6 +4,7 @@ from fastapi import APIRouter, HTTPException
 from pydantic import BaseModel
 
 from pix.app import AppGraph
+from pix.autotagger.custom import CustomAutotagger
 from pix.embedding_index import EmbeddingIndexManager
 from pix.model.face_cluster import FaceClusterRepo
 from pix.model.image import Image, ImageRepo, ImageTag
@@ -138,3 +139,19 @@ def set_image_manual_tags(image_id: str, request: SetImageManualTagsRequest):
     image_repo.update(image)
 
     return ImageDto.from_doc(image)
+
+
+@images_router.get("/api/images/{image_id}/custom-autotags")
+def get_image_custom_autotags(image_id: str):
+    image_repo = AppGraph.get_instance(ImageRepo)
+    image = image_repo.get(image_id)
+    if image is None:
+        raise HTTPException(404)
+
+    if image.embedding is None:
+        return []
+    
+    autotagger = AppGraph.get_instance(CustomAutotagger)
+    autotagger.load_model()
+
+    return autotagger.extract(image.embedding.to_numpy())

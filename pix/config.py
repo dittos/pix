@@ -16,3 +16,4 @@ class Settings(BaseSettings):
     data_dir: Path
 
     huggingface_token: str
+    custom_autotagger_model_dir: Path

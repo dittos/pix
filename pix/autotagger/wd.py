@@ -38,8 +38,12 @@ class WdAutotagger:
         self.modified_model_cache_path = data_dir / "wd-autotagger-model.onnx"
         self.score_general_threshold = 0.35
         self.score_character_threshold = 0.85
+        self._predict = None
 
     def load_model(self):
+        if self._predict is not None:
+            return
+
         tag_names, rating_indexes, general_indexes, character_indexes = load_labels(self.huggingface_token)
 
         # TODO: invalidation

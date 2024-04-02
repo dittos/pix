@@ -64,6 +64,7 @@ function DetailOverlaySidebar({
 }: any) {
   const [similarImages, setSimilarImages] = React.useState([])
   const [faces, setFaces] = React.useState([])
+  const [autotags, setAutotags] = React.useState([])
   React.useEffect(() => {
     fetch(`/api/images/${encodeURIComponent(selectedImage.id)}/similar`)
       .then(r => r.json())
@@ -72,6 +73,10 @@ function DetailOverlaySidebar({
     fetch(`/api/images/${encodeURIComponent(selectedImage.id)}/faces`)
       .then(r => r.json())
       .then(r => setFaces(r))
+
+    fetch(`/api/images/${encodeURIComponent(selectedImage.id)}/custom-autotags`)
+      .then(r => r.json())
+      .then(r => setAutotags(r))
   }, [selectedImage.id])
 
   const allTags = (selectedImage.manual_tags?.map((it: any) => ({...it, is_manual: true})) ?? []).concat(selectedImage.tags ?? [])
@@ -142,6 +147,11 @@ function DetailOverlaySidebar({
 
       <div className="my-2 fw-bold">characters</div>
       <div className="pb-2">
+        {autotags.length > 0 && (
+          <div>
+            ✨ {autotags.join(", ")}
+          </div>
+        )}
         <TagList
           tags={allTags.filter((tag: any) => tag.type === 'CHARACTER')}
           onRemove={(tag: any) => removeCharacterTag(tag)}

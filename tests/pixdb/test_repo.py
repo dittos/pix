@@ -43,6 +43,20 @@ def test_index():
     ).all()
     assert r == [("1", ), ("2", )]
 
+    # test rebuild_index
+    new_idx = ImageRepo.schema.add_indexer(
+        [IndexField("id2", BigInteger)],
+        lambda doc: [(doc.id, )],
+    )
+    metadata.create_all(engine)
+    image_repo.rebuild_index([new_idx])
+    r = db.execute(
+        select(image_repo.table.c.id)
+            .join(new_idx.table, image_repo.table.c.id == new_idx.c.id)
+            .order_by(new_idx.c.id2)
+    ).all()
+    assert r == [("1", ), ("2", )]
+
 
 metadata = MetaData()
 

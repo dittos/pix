@@ -1,10 +1,10 @@
 import json
-from typing import ClassVar, Generic, Iterator, TypeVar, Union
+from typing import Callable, ClassVar, Generic, Iterator, List, Optional, TypeVar, Union
 
 from pydantic import BaseModel
 from sqlalchemy import Row, select, insert, update, delete
 
-from pixdb.schema import Schema
+from pixdb.schema import Indexer, Schema
 from pixdb.db import Database
 
 
@@ -33,15 +33,30 @@ class Repo(Generic[T]):
                 self.db.execute(insert(self.table).values(id=id, content=content))
 
             for indexer in self.schema.indexers:
-                index_table = indexer.table
-                self.db.execute(delete(index_table).where(index_table.c.id == id))
-                entries = [entry + (id, ) for entry in indexer.entries_extractor(doc)]
-                if entries:
-                    self.db.execute(insert(index_table).values(entries))
+                self._update_index(indexer, id, doc)
+    
+    def _update_index(self, indexer: Indexer, id: str, doc: T):
+        index_table = indexer.table
+        self.db.execute(delete(index_table).where(index_table.c.id == id))
+        entries = [entry + (id, ) for entry in indexer.entries_extractor(doc)]
+        if entries:
+            self.db.execute(insert(index_table).values(entries))
     
     def update(self, doc: T):
         # TODO: optimistic locking
         self.put(doc.id, doc)
+    
+    def rebuild_index(self, indexers: List[Indexer], progress_callback: Optional[Callable] = None):
+        for row in self.db.execute(select(self.table)):
+            progress_callback()
+            
+            with self.db.transactional():
+                existing = self.db.execute(select(self.table.c.id).where(self.table.c.id == row.id).with_for_update()).first()
+                if not existing:
+                    continue
+
+                for indexer in indexers:
+                    self._update_index(indexer, row.id, self._doc_from_row(row))
 
     def all(self) -> Iterator[T]:
         return (self._doc_from_row(row) for row in self.db.execute(select(self.table)))

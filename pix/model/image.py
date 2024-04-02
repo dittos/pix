@@ -92,19 +92,19 @@ class TagQuery:
 
 class ImageRepo(Repo[Image]):
     schema = Schema(Image, metadata)
-    idx_collected_at = schema.add_index_table(
+    idx_collected_at = schema.add_indexer(
         [IndexField("collected_at", sa.DateTime, descending=True)],
         lambda image: [(image.collected_at, )],
     )
-    idx_tag_new = schema.add_index_table(
+    idx_tag_new = schema.add_indexer(
         [IndexField("tag", sa.String), IndexField("collected_at", sa.DateTime, descending=True)],
         lambda image: [(tag.tag, image.collected_at) for tag in image.get_all_tags()],
     )
-    idx_tag_score = schema.add_index_table(
+    idx_tag_score = schema.add_indexer(
         [IndexField("tag", sa.String), IndexField("score", sa.Float, descending=True)],
         lambda image: [(tag.tag, tag.score) for tag in image.get_all_tags()],
     )
-    idx_needs_autotagging = schema.add_index_table(
+    idx_needs_autotagging = schema.add_indexer(
         [IndexField("needs_autotagging", sa.Boolean)],
         lambda image: [(image.tags is None, )],
     )
@@ -115,7 +115,7 @@ class ImageRepo(Repo[Image]):
     def list_by_collected_at_desc(self, offset: int, limit: int) -> List[Image]:
         return [self._doc_from_row(row) for row in self.db.execute(
             sa.select(self.table)
-                .join(self.idx_collected_at, self.table.c.id == self.idx_collected_at.c.id)
+                .join(self.idx_collected_at.table, self.table.c.id == self.idx_collected_at.c.id)
                 .order_by(self.idx_collected_at.c.collected_at.desc())
                 .offset(offset)
                 .limit(limit)
@@ -124,7 +124,7 @@ class ImageRepo(Repo[Image]):
     def list_by_tag_collected_at_desc(self, tag: str, offset: int, limit: int) -> List[Image]:
         return [self._doc_from_row(row) for row in self.db.execute(
             sa.select(self.table)
-                .join(self.idx_collected_at, self.idx_collected_at.c.id == self.table.c.id)
+                .join(self.idx_collected_at.table, self.idx_collected_at.c.id == self.table.c.id)
                 .where(*self._tag_condition(self.table, tag))
                 .order_by(self.idx_collected_at.c.collected_at.desc())
                 .offset(offset)
@@ -151,14 +151,14 @@ class ImageRepo(Repo[Image]):
     def list_needs_autotagging(self) -> List[Image]:
         return [self._doc_from_row(row) for row in self.db.execute(
             sa.select(self.table)
-                .join(self.idx_needs_autotagging, self.table.c.id == self.idx_needs_autotagging.c.id)
+                .join(self.idx_needs_autotagging.table, self.table.c.id == self.idx_needs_autotagging.c.id)
                 .where(self.idx_needs_autotagging.c.needs_autotagging)
         )]
     
     def list_all_tags_with_count(self, q: Union[str, None]) -> List[Tuple[str, int]]:
         query = sa.select(self.idx_tag_score.c.tag, sa.func.count())
         if q:
-            query = query.where(*self._tag_condition(self.idx_tag_score, q))
+            query = query.where(*self._tag_condition(self.idx_tag_score.table, q))
         return self.db.execute(
             query.group_by(self.idx_tag_score.c.tag)
         ).all()

@@ -38,7 +38,7 @@ def test_index():
     idx_created_at = ImageRepo.idx_created_at
     r = db.execute(
         select(image_repo.table.c.id)
-            .join(idx_created_at, image_repo.table.c.id == idx_created_at.c.id)
+            .join(idx_created_at.table, image_repo.table.c.id == idx_created_at.c.id)
             .order_by(idx_created_at.c.created_at.desc())
     ).all()
     assert r == [("1", ), ("2", )]
@@ -64,11 +64,11 @@ def datetime_to_epoch_milli(dt: datetime):
 
 class ImageRepo(Repo[Image]):
     schema = Schema(Image, metadata)
-    idx_created_at = schema.add_index_table(
+    idx_created_at = schema.add_indexer(
         [IndexField("created_at", BigInteger, descending=True)],
         lambda doc: [(datetime_to_epoch_milli(doc.created_at), )],
     )
-    idx_tag = schema.add_index_table(
+    idx_tag = schema.add_indexer(
         [IndexField("tag", String), IndexField("created_at", BigInteger, descending=True)],
         lambda doc: [(tag.name, datetime_to_epoch_milli(doc.created_at)) for tag in doc.tags],
     )

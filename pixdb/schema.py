@@ -22,6 +22,10 @@ class Indexer(Generic[T]):
         self.fields = fields
         self.entries_extractor = entries_extractor
         self.meta_fields = meta_fields
+    
+    @property
+    def c(self):
+        return self.table.c
 
 
 def get_index_name(table_name: str, fields: List[IndexField]):
@@ -52,8 +56,8 @@ class Schema(Generic[T]):
             Column("content", String, nullable=False),
         )
 
-    def add_index_table(self, fields: List[IndexField], entries_extractor: Callable[[T], Iterator[Tuple]],
-                        meta_fields: List[IndexField] = None) -> Table:
+    def add_indexer(self, fields: List[IndexField], entries_extractor: Callable[[T], Iterator[Tuple]],
+                        meta_fields: List[IndexField] = None) -> Indexer:
         table = Table(
             get_index_name(self.table.name, fields),
             self.table.metadata,
@@ -65,5 +69,6 @@ class Schema(Generic[T]):
                 *[desc(field.name) if field.descending else field.name for field in fields],
             )
         )
-        self.indexers.append(Indexer(table, fields, entries_extractor, meta_fields))
-        return table
+        indexer = Indexer(table, fields, entries_extractor, meta_fields)
+        self.indexers.append(indexer)
+        return indexer

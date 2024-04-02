@@ -3,7 +3,6 @@ from typing import ClassVar, Generic, Iterator, TypeVar, Union
 
 from pydantic import BaseModel
 from sqlalchemy import Row, select, insert, update, delete
-from pixdb.db import Database
 
 from pixdb.schema import Schema
 from pixdb.db import Database

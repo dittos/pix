@@ -22,7 +22,7 @@ class FaceCluster(BaseModel):
 
 class FaceClusterRepo(Repo[FaceCluster]):
     schema = Schema(FaceCluster, metadata)
-    idx_face_ref = schema.add_index_table(
+    idx_face_ref = schema.add_indexer(
         [IndexField("image_id", sa.String), IndexField("index", sa.Integer)],
         lambda fc: [(face.image_id, face.index) for face in fc.faces]
     )
@@ -30,7 +30,7 @@ class FaceClusterRepo(Repo[FaceCluster]):
     def get_by_face_ref(self, image_id: str, index: int) -> Union[FaceCluster, None]:
         fc = self.db.execute(
             sa.select(self.table)
-                .join(self.idx_face_ref, self.idx_face_ref.c.id == self.table.c.id)
+                .join(self.idx_face_ref.table, self.idx_face_ref.c.id == self.table.c.id)
                 .where((self.idx_face_ref.c.image_id == image_id) & (self.idx_face_ref.c.index == index))
         ).first()
         if fc is None:

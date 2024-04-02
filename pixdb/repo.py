@@ -48,8 +48,9 @@ class Repo(Generic[T]):
     
     def rebuild_index(self, indexers: List[Indexer], progress_callback: Optional[Callable] = None):
         for row in self.db.execute(select(self.table)):
-            progress_callback()
-            
+            if progress_callback:
+                progress_callback()
+
             with self.db.transactional():
                 existing = self.db.execute(select(self.table.c.id).where(self.table.c.id == row.id).with_for_update()).first()
                 if not existing:

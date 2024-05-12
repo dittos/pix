@@ -56,8 +56,9 @@ class Repo(Generic[T]):
                 if not existing:
                     continue
 
+                doc = self._doc_from_row(row)
                 for indexer in indexers:
-                    self._update_index(indexer, row.id, self._doc_from_row(row))
+                    self._update_index(indexer, row.id, doc)
 
     def all(self) -> Iterator[T]:
         return (self._doc_from_row(row) for row in self.db.execute(select(self.table)))

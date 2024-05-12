@@ -106,7 +106,7 @@ class ImageRepo(Repo[Image]):
     )
     idx_needs_autotagging = schema.add_indexer(
         [IndexField("needs_autotagging", sa.Boolean)],
-        lambda image: [(image.tags is None, )],
+        lambda image: [(True, )] if image.tags is None else [],
     )
 
     def count(self) -> int:

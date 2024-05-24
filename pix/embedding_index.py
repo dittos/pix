@@ -1,5 +1,5 @@
 from pathlib import Path
-from typing import List, Tuple, Union
+from typing import List, Mapping, Tuple, Union
 import numpy as np
 import faiss
 
@@ -68,3 +68,15 @@ class EmbeddingIndexManager:
             self._index = index
             self._last_modified = mtime
         return self._index
+
+
+class MultiEmbeddingIndexManager:
+    def __init__(self, dirs: Mapping[str, Path]):
+        self.dirs = dirs
+        self.managers = {
+            name: EmbeddingIndexManager(dir)
+            for name, dir in dirs.items()
+        }
+    
+    def get_manager(self, name: str):
+        return self.managers[name]

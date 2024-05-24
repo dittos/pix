@@ -62,13 +62,24 @@ function DetailOverlaySidebar({
   selectedImage,
   updateImage,
 }: any) {
-  const [similarImages, setSimilarImages] = React.useState([])
+  const [similarImages, setSimilarImages] = React.useState({
+    embedding: selectedImage.embedding_types[0],
+    data: [],
+    isLoading: true,
+  })
   const [faces, setFaces] = React.useState([])
   const [autotags, setAutotags] = React.useState([])
-  React.useEffect(() => {
-    fetch(`/api/images/${encodeURIComponent(selectedImage.id)}/similar`)
+  const loadSimilarImages = (embedding: string) => {
+    setSimilarImages({embedding, data: similarImages.data, isLoading: true})
+    fetch(`/api/images/${encodeURIComponent(selectedImage.id)}/similar?embedding_type=${embedding}`)
       .then(r => r.json())
-      .then(r => setSimilarImages(r))
+      .then(r => setSimilarImages({embedding, data: r, isLoading: false}))
+  }
+
+  React.useEffect(() => {
+    if (selectedImage.embedding_types[0]) {
+      loadSimilarImages(selectedImage.embedding_types[0])
+    }
 
     fetch(`/api/images/${encodeURIComponent(selectedImage.id)}/faces`)
       .then(r => r.json())
@@ -163,8 +174,22 @@ function DetailOverlaySidebar({
       </div>
 
       <div className="my-2 fw-bold">similar</div>
-      <div className="d-flex flex-wrap">
-        {similarImages.map(({image, score}: any) => (
+      <div className="my-2">
+        {selectedImage.embedding_types.map((type: string) => (
+          <span className="me-2">
+            <a
+              key={type}
+              href="#"
+              className={similarImages.embedding === type ? 'fw-bold' : ''}
+              onClick={(e) => { e.preventDefault(); loadSimilarImages(type) }}
+            >
+              {type}
+            </a>
+          </span>
+        ))}
+      </div>
+      <div className="d-flex flex-wrap" style={similarImages.isLoading ? {opacity: 0.5} : {}}>
+        {similarImages.data.map(({image, score}: any) => (
           <div className="me-2 mb-2">
             <Link to={`/images/${image.id}`}>
               <img src={`/_images/${image.local_filename}`} style={{height: 120}} />

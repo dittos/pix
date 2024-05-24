@@ -9,7 +9,7 @@ from pix.config import Settings
 from pix.pipeline import run_pipeline
 from pix.downloader.twitter_base import TwitterDownloader
 from pix.downloader.twitter_playwright import TwitterPlaywrightDownloader
-from pix.embedding_index import EmbeddingIndexManager
+from pix.embedding_index import EmbeddingIndexManager, MultiEmbeddingIndexManager
 from pix.model.base import metadata
 from pixdb.inject import Graph, Value
 
@@ -28,9 +28,12 @@ def create_graph(debug: bool = False):
     graph.bind_implementation(TwitterDownloader, TwitterPlaywrightDownloader)
 
     def embedding_index_factory(data_dir: Annotated[Path, Value]):
-        return EmbeddingIndexManager(data_dir / "emb-index")
+        return MultiEmbeddingIndexManager({
+            "default": data_dir / "emb-index" / "default",
+            "clip": data_dir / "emb-index" / "clip",
+        })
     
-    graph.bind_factory(EmbeddingIndexManager, embedding_index_factory)
+    graph.bind_factory(MultiEmbeddingIndexManager, embedding_index_factory)
 
     def scheduler_factory(graph: Graph):
         scheduler = BackgroundScheduler()

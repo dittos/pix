@@ -4,8 +4,9 @@ from fastapi import APIRouter, HTTPException
 from pydantic import BaseModel
 
 from pix.app import AppGraph
+from pix.embeddings.clip import ClipEmbedding
 from pix.autotagger.custom import CustomAutotagger
-from pix.embedding_index import EmbeddingIndexManager
+from pix.embedding_index import EmbeddingIndexManager, MultiEmbeddingIndexManager
 from pix.model.face_cluster import FaceClusterRepo
 from pix.model.image import Image, ImageRepo, ImageTag
 
@@ -24,12 +25,19 @@ class ImageDto(BaseModel):
 
     tags: Union[List[ImageTag], None]
     manual_tags: Union[List[ImageTag], None]
+    embedding_types: List[str]
     # embedding: Union[Vector, None] = None
     # faces: Union[List[ImageFace], None] = None
 
     @staticmethod
     def from_doc(image: Image):
         fields = image.model_dump()
+        embedding_types = []
+        if image.embedding:
+            embedding_types.append("default")
+        if image.embeddings:
+            embedding_types.extend(image.embeddings.keys())
+        fields["embedding_types"] = embedding_types
         return ImageDto.model_validate(fields)
 
 
@@ -59,6 +67,26 @@ def list_images(page: int = 1, tag: Optional[str] = None) -> ListImagesResult:
     )
 
 
+@images_router.get("/api/images/search")
+def search_images(q: str, limit: int = 100):
+    image_repo = AppGraph.get_instance(ImageRepo)
+    index = AppGraph.get_instance(MultiEmbeddingIndexManager).get_manager("clip")
+    embedding = AppGraph.get_instance(ClipEmbedding)
+    embedding.load_model()
+
+    result = []
+    for sim_id, score in index.search(embedding.encode_text(q), limit):
+        sim_image = image_repo.get(sim_id)
+        if sim_image is None: continue
+
+        result.append({
+            "image": ImageDto.from_doc(sim_image),
+            "score": score,
+        })
+    
+    return result
+
+
 @images_router.get("/api/images/{image_id}")
 def get_image(image_id: str):
     image_repo = AppGraph.get_instance(ImageRepo)
@@ -70,18 +98,23 @@ def get_image(image_id: str):
 
 
 @images_router.get("/api/images/{image_id}/similar")
-def list_similar_images(image_id: str, count: int = 5):
+def list_similar_images(image_id: str, count: int = 5, embedding_type: str = "default"):
     image_repo = AppGraph.get_instance(ImageRepo)
     image = image_repo.get(image_id)
     if image is None:
         raise HTTPException(404)
     
-    if image.embedding is None:
+    if embedding_type == "default":
+        emb = image.embedding
+    else:
+        emb = image.embeddings.get(embedding_type)
+        
+    if not emb:
         return []
 
-    index = AppGraph.get_instance(EmbeddingIndexManager)
+    index = AppGraph.get_instance(MultiEmbeddingIndexManager).get_manager(embedding_type)
     result = []
-    for sim_id, score in index.search(image.embedding.to_numpy(), count + 1):
+    for sim_id, score in index.search(emb.to_numpy(), count + 1):
         if sim_id == image_id: continue
         sim_image = image_repo.get(sim_id)
         if sim_image is None: continue

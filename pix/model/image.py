@@ -4,7 +4,7 @@ import datetime
 from enum import Enum
 import numpy as np
 import sqlalchemy as sa
-from typing import List, Tuple, Union
+from typing import List, Mapping, Tuple, Union
 from pydantic import BaseModel
 from pixdb.repo import Repo
 
@@ -57,6 +57,7 @@ class Image(BaseModel):
     tags: Union[List[ImageTag], None] = None
     manual_tags: Union[List[ImageTag], None] = None
     embedding: Union[Vector, None] = None
+    embeddings: Union[Mapping[str, Vector], None] = None
     faces: Union[List[ImageFace], None] = None
 
     def get_all_tags(self) -> List[ImageTag]:
@@ -108,6 +109,10 @@ class ImageRepo(Repo[Image]):
         [IndexField("needs_autotagging", sa.Boolean)],
         lambda image: [(True, )] if image.tags is None else [],
     )
+    idx_embedding_types = schema.add_indexer(
+        [IndexField("embedding_type", sa.String)],
+        lambda image: [(k, ) for k in image.embeddings.keys()] if image.embeddings else [],
+    )
 
     def count(self) -> int:
         return self.db.execute(sa.select(sa.func.count()).select_from(self.table)).first()[0]
@@ -153,6 +158,16 @@ class ImageRepo(Repo[Image]):
             sa.select(self.table)
                 .join(self.idx_needs_autotagging.table, self.table.c.id == self.idx_needs_autotagging.c.id)
                 .where(self.idx_needs_autotagging.c.needs_autotagging)
+        )]
+        
+    def list_needs_embedding(self, embedding_type: str) -> List[Image]:
+        return [self._doc_from_row(row) for row in self.db.execute(
+            sa.select(self.table)
+                .outerjoin(self.idx_embedding_types.table, (
+                    (self.table.c.id == self.idx_embedding_types.c.id)
+                    & (self.idx_embedding_types.c.embedding_type == embedding_type)
+                ))
+                .where(self.idx_embedding_types.c.embedding_type.is_(None))
         )]
     
     def list_all_tags_with_count(self, q: Union[str, None]) -> List[Tuple[str, int]]:

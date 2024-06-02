@@ -15,7 +15,7 @@ def build_index(
 ):
     index = EmbeddingIndex()
 
-    for image in tqdm(image_repo.all()):
+    for image in tqdm(image_repo.all(), desc=embedding_name):
         if embedding_name:
             if not image.embeddings: continue
             emb = image.embeddings.get(embedding_name)
@@ -37,3 +37,5 @@ def main(
     emb_dir = data_dir / "emb-index"
     build_index(None, image_repo, emb_dir / "default")
     build_index("clip", image_repo, emb_dir / "clip")
+    build_index("resnet", image_repo, emb_dir / "resnet")
+    build_index("dinov2", image_repo, emb_dir / "dinov2")

@@ -19,13 +19,15 @@ faiss-cpu = "^1.7.4"
 polars = "^0.20.7"
 apscheduler = "^3.10.4"
 google-cloud-storage = "^2.14.0"
+transformers = {extras = ["torch"], version = "^4.41.1"}
 
 [tool.poetry.group.dev.dependencies]
 pytest = "^7.4.4"
+ipykernel = "^6.29.4"
 
 [tool.poetry.group.autotagger-wd.dependencies]
 pillow = "^10.2.0"
-huggingface-hub = "^0.20.2"
+huggingface-hub = "^0.23"
 onnxruntime = ">=1.12.0"
 opencv-python = "~4.8"
 onnx = "^1.15.0"

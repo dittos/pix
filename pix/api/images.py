@@ -98,7 +98,7 @@ def get_image(image_id: str):
 
 
 @images_router.get("/api/images/{image_id}/similar")
-def list_similar_images(image_id: str, count: int = 5, embedding_type: str = "default"):
+def list_similar_images(image_id: str, count: int = 10, embedding_type: str = "default"):
     image_repo = AppGraph.get_instance(ImageRepo)
     image = image_repo.get(image_id)
     if image is None:

@@ -39,3 +39,4 @@ def main(
     build_index("clip", image_repo, emb_dir / "clip")
     build_index("resnet", image_repo, emb_dir / "resnet")
     build_index("dinov2", image_repo, emb_dir / "dinov2")
+    build_index("csd", image_repo, emb_dir / "csd")

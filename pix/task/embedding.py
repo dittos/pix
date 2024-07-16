@@ -2,6 +2,7 @@ from pathlib import Path
 from typing_extensions import Annotated
 from tqdm.auto import tqdm
 from pix.embeddings.clip import ClipEmbedding
+from pix.embeddings.csd import CsdEmbedding
 from pix.embeddings.dinov2 import Dinov2Embedding
 from pix.embeddings.resnet import ResnetEmbedding
 from pix.model.image import ImageRepo, Vector
@@ -17,6 +18,7 @@ def main(
         'clip': ClipEmbedding,
         'resnet': ResnetEmbedding,
         'dinov2': Dinov2Embedding,
+        'csd': CsdEmbedding,
     }
 
     # reset_embedding = 'dinov2'

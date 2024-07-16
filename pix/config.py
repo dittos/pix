@@ -17,3 +17,4 @@ class Settings(BaseSettings):
 
     huggingface_token: str
     custom_autotagger_model_dir: Path
+    csd_pretrained_model_path: Path

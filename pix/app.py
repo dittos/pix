@@ -33,6 +33,7 @@ def create_graph(debug: bool = False):
             "clip": data_dir / "emb-index" / "clip",
             "resnet": data_dir / "emb-index" / "resnet",
             "dinov2": data_dir / "emb-index" / "dinov2",
+            "csd": data_dir / "emb-index" / "csd",
         })
     
     graph.bind_factory(MultiEmbeddingIndexManager, embedding_index_factory)

@@ -1,12 +1,13 @@
 import datetime
 from typing import List, Optional, Union
 from fastapi import APIRouter, HTTPException
+import numpy as np
 from pydantic import BaseModel
 
 from pix.app import AppGraph
 from pix.embeddings.clip import ClipEmbedding
 from pix.autotagger.custom import CustomAutotagger
-from pix.embedding_index import EmbeddingIndexManager, MultiEmbeddingIndexManager
+from pix.embedding_index import MultiEmbeddingIndexManager
 from pix.model.face_cluster import FaceClusterRepo
 from pix.model.image import Image, ImageRepo, ImageTag
 
@@ -32,13 +33,17 @@ class ImageDto(BaseModel):
     @staticmethod
     def from_doc(image: Image):
         fields = image.model_dump()
+        fields["embedding_types"] = ImageDto.get_embedding_types(image)
+        return ImageDto.model_validate(fields)
+    
+    @staticmethod
+    def get_embedding_types(image: Image):
         embedding_types = []
         if image.embedding:
             embedding_types.append("default")
         if image.embeddings:
             embedding_types.extend(image.embeddings.keys())
-        fields["embedding_types"] = embedding_types
-        return ImageDto.model_validate(fields)
+        return embedding_types
 
 
 class ListImagesResult(BaseModel):
@@ -125,6 +130,72 @@ def list_similar_images(image_id: str, count: int = 10, embedding_type: str = "d
         })
     
     return result
+
+
+@images_router.get("/api/images/{image_id}/similar/compare")
+def list_similar_images_compare(image_id: str):
+    image_repo = AppGraph.get_instance(ImageRepo)
+    image = image_repo.get(image_id)
+    if image is None:
+        raise HTTPException(404)
+    
+    embedding_types = ImageDto.get_embedding_types(image)
+
+    results = []
+    count = 5
+    all_sim_images = {}
+
+    for embedding_type in embedding_types:
+        index = AppGraph.get_instance(MultiEmbeddingIndexManager).get_manager(embedding_type)
+
+        if embedding_type == "default":
+            emb = image.embedding
+        else:
+            emb = image.embeddings[embedding_type]
+
+        result = []
+        for sim_id, score in index.search(emb.to_numpy(), count + 1):
+            if sim_id == image_id: continue
+            sim_image = all_sim_images.get(sim_id) or image_repo.get(sim_id)
+            if sim_image is None: continue
+            all_sim_images[sim_id] = sim_image
+
+            result.append({
+                "image": ImageDto.from_doc(sim_image),
+                "score": score,
+            })
+        
+        results.append({
+            "type": embedding_type,
+            "images": result,
+        })
+    
+    # extend result
+    for result in results:
+        embedding_type = result["type"]
+        if embedding_type == "default":
+            query_emb = image.embedding
+        else:
+            query_emb = image.embeddings[embedding_type]
+        query_emb = query_emb.to_numpy()
+
+        missing_image_ids = all_sim_images.keys() - set(image["image"].id for image in result["images"])
+        for missing_image_id in missing_image_ids:
+            missing_image = all_sim_images[missing_image_id]
+            if embedding_type == "default":
+                emb = missing_image.embedding
+            else:
+                emb = missing_image.embeddings[embedding_type]
+            emb = emb.to_numpy()
+
+            result["images"].append({
+                "image": ImageDto.from_doc(missing_image),
+                "score": np.dot(query_emb, emb).astype(float) / (np.linalg.norm(query_emb) * np.linalg.norm(emb)),
+            })
+        
+        result["images"].sort(key=lambda image: image["score"], reverse=True)
+    
+    return results
 
 
 @images_router.get("/api/images/{image_id}/faces")

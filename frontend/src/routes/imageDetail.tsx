@@ -173,7 +173,10 @@ function DetailOverlaySidebar({
         ))}
       </div>
 
-      <div className="my-2 fw-bold">similar</div>
+      <div className="my-2 fw-bold">
+        similar
+        <Link to={`/images/${encodeURIComponent(selectedImage.id)}/similar`} className="ms-2 fw-normal">more...</Link>
+      </div>
       <div className="my-2">
         {selectedImage.embedding_types.map((type: string) => (
           <span className="me-2">

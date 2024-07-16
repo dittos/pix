@@ -14,6 +14,7 @@ import { extractRootSearchParams } from './utils/search'
 import isEqual from 'lodash/isEqual'
 import { RootRoute } from './routes/root'
 import { imageDetailLoader, ImageDetailRoute } from './routes/imageDetail'
+import { imageSimilarLoader, ImageSimilarRoute } from './routes/imageSimilar'
 
 const router = createBrowserRouter([
   {
@@ -50,6 +51,11 @@ const router = createBrowserRouter([
         path: "images/:imageId",
         element: <ImageDetailRoute />,
         loader: imageDetailLoader,
+      },
+      {
+        path: "images/:imageId/similar",
+        element: <ImageSimilarRoute />,
+        loader: imageSimilarLoader,
       },
       {
         path: "faces",

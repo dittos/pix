@@ -2,7 +2,7 @@ import * as React from 'react'
 import { Link, LoaderFunction, Outlet, useLoaderData, useLocation } from 'react-router-dom'
 import { useState } from 'react'
 import { applyQuickFilters } from '../utils/tagQuery'
-import { extractIndexSearchParams, extractRootSearchParams, removeTag } from '../utils/search'
+import { extractIndexSearchParams, extractRootSearchParams, removeTag, setSort } from '../utils/search'
 import { RootLink, useExtractedSearchParams } from '../components/SearchLink'
 
 export const searchResultLoader: LoaderFunction = async ({ request }) => {
@@ -14,6 +14,7 @@ export const searchResultLoader: LoaderFunction = async ({ request }) => {
     images: await (await fetch('/api/images?' + new URLSearchParams({
       ...(tag && {tag}),
       ...(page && {page: String(page)}),
+      ...(root.sort && {sort: root.sort}),
     }))).json()
   }
 }
@@ -38,7 +39,13 @@ export function SearchResultRoute() {
           ))}
         </div>
       )}
-      <p className="mb-4">total {images.count} images</p>
+
+      <p className="mb-4">
+        total {images.count} images
+        / sort by date:{' '}
+        <RootLink search={setSort(search, 'desc')} className={search.sort === 'desc' ? 'fw-bold' : ''}>desc</RootLink>{' '}
+        <RootLink search={setSort(search, 'asc')} className={search.sort === 'asc' ? 'fw-bold' : ''}>asc</RootLink>
+      </p>
 
       <div className="d-flex flex-wrap">
         {imageList.map((image: any) => (

@@ -117,21 +117,27 @@ class ImageRepo(Repo[Image]):
     def count(self) -> int:
         return self.db.execute(sa.select(sa.func.count()).select_from(self.table)).first()[0]
 
-    def list_by_collected_at_desc(self, offset: int, limit: int) -> List[Image]:
+    def list_by_collected_at_desc(self, offset: int, limit: int, descending: bool = True) -> List[Image]:
+        order_by = self.idx_collected_at.c.collected_at
+        if descending:
+            order_by = order_by.desc()
         return [self._doc_from_row(row) for row in self.db.execute(
             sa.select(self.table)
                 .join(self.idx_collected_at.table, self.table.c.id == self.idx_collected_at.c.id)
-                .order_by(self.idx_collected_at.c.collected_at.desc())
+                .order_by(order_by)
                 .offset(offset)
                 .limit(limit)
         )]
 
-    def list_by_tag_collected_at_desc(self, tag: str, offset: int, limit: int) -> List[Image]:
+    def list_by_tag_collected_at_desc(self, tag: str, offset: int, limit: int, descending: bool = True) -> List[Image]:
+        order_by = self.idx_collected_at.c.collected_at
+        if descending:
+            order_by = order_by.desc()
         return [self._doc_from_row(row) for row in self.db.execute(
             sa.select(self.table)
                 .join(self.idx_collected_at.table, self.idx_collected_at.c.id == self.table.c.id)
                 .where(*self._tag_condition(self.table, tag))
-                .order_by(self.idx_collected_at.c.collected_at.desc())
+                .order_by(order_by)
                 .offset(offset)
                 .limit(limit)
         )]
@@ -168,6 +174,15 @@ class ImageRepo(Repo[Image]):
                     & (self.idx_embedding_types.c.embedding_type == embedding_type)
                 ))
                 .where(self.idx_embedding_types.c.embedding_type.is_(None))
+        )]
+
+    def list_has_embedding(self, embedding_type: str) -> List[Image]:
+        return [self._doc_from_row(row) for row in self.db.execute(
+            sa.select(self.table)
+                .join(self.idx_embedding_types.table, (
+                    (self.table.c.id == self.idx_embedding_types.c.id)
+                    & (self.idx_embedding_types.c.embedding_type == embedding_type)
+                ))
         )]
     
     def list_all_tags_with_count(self, q: Union[str, None]) -> List[Tuple[str, int]]:

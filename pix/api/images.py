@@ -1,5 +1,5 @@
 import datetime
-from typing import List, Optional, Union
+from typing import List, Literal, Optional, Union
 from fastapi import APIRouter, HTTPException
 import numpy as np
 from pydantic import BaseModel
@@ -53,15 +53,15 @@ class ListImagesResult(BaseModel):
 
 
 @images_router.get("/api/images")
-def list_images(page: int = 1, tag: Optional[str] = None) -> ListImagesResult:
+def list_images(page: int = 1, tag: Optional[str] = None, sort: Optional[Literal['asc', 'desc']] = None) -> ListImagesResult:
     limit = 20
     offset = (page - 1) * limit
     image_repo = AppGraph.get_instance(ImageRepo)
     if tag:
-        images = image_repo.list_by_tag_collected_at_desc(tag, offset, limit + 1)
+        images = image_repo.list_by_tag_collected_at_desc(tag, offset, limit + 1, descending=sort != 'asc')
         count = image_repo.count_by_tag(tag)
     else:
-        images = image_repo.list_by_collected_at_desc(offset, limit + 1)
+        images = image_repo.list_by_collected_at_desc(offset, limit + 1, descending=sort != 'asc')
         count = image_repo.count()
     has_next_page = len(images) > limit
     images = images[:limit]

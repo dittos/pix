@@ -4,13 +4,16 @@ export type RootSearchParams = {
   tag?: string
   sfw?: TagQuery.QuickFilterState
   realistic?: TagQuery.QuickFilterState
+  sort?: 'asc' | 'desc'
 }
 
 export function extractRootSearchParams(searchParams: URLSearchParams): RootSearchParams {
+  const sortParam = searchParams.get('sort')
   return {
     tag: searchParams.get('tag') ?? undefined,
     sfw: searchParams.get('sfw') as TagQuery.QuickFilterState,
     realistic: searchParams.get('realistic') as TagQuery.QuickFilterState,
+    sort: sortParam === 'asc' || sortParam === 'desc' ? sortParam : 'desc',
   }
 }
 
@@ -57,5 +60,12 @@ export function setQuickFilterState(search: RootSearchParams, key: 'sfw' | 'real
   return {
     ...search,
     [key]: state,
+  }
+}
+
+export function setSort(search: RootSearchParams, sort: 'asc' | 'desc'): RootSearchParams {
+  return {
+    ...search,
+    sort,
   }
 }

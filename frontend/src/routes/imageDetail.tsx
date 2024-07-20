@@ -133,9 +133,12 @@ function DetailOverlaySidebar({
       ))}
     </div>
     <div className="col-3 border-start p-2 overflow-y-auto bg-body-tertiary">
-      {selectedImage.tweet_id && selectedImage.tweet_username && (
-        <p className="card-text">source: <a href={`https://twitter.com/_/status/${selectedImage.tweet_id}`} target="_blank">@{selectedImage.tweet_username}</a></p>
-      )}
+      <p className="card-text">
+        {selectedImage.tweet_id && selectedImage.tweet_username && (
+          <div>source: <a href={`https://twitter.com/_/status/${selectedImage.tweet_id}`} target="_blank">@{selectedImage.tweet_username}</a></div>
+        )}
+        <div>collected at: {new Date(selectedImage.collected_at).toLocaleDateString()}</div>
+      </p>
 
       {(faces?.length ?? 0) > 0 && (<>
         <div className="mb-2 fw-bold">faces</div>

@@ -6,6 +6,7 @@ import numpy as np
 import sqlalchemy as sa
 from typing import List, Mapping, Tuple, Union
 from pydantic import BaseModel
+from pix.model.face_cluster import FaceClusterRepo
 from pixdb.repo import Repo
 
 from pixdb.schema import IndexField, Schema
@@ -71,9 +72,31 @@ class Image(BaseModel):
 
 
 @dataclass
-class TagQueryTerm:
+class TagQueryTermTag:
     tag: str
+
+    def __str__(self):
+        return self.tag
+
+
+@dataclass
+class TagQueryTermFace:
+    face_cluster_id: str
+
+    def __str__(self):
+        return "face:" + self.face_cluster_id
+
+
+@dataclass
+class TagQueryTerm:
+    tag: Union[TagQueryTermTag, TagQueryTermFace]
     negated: bool
+
+    def __str__(self):
+        tag = str(self.tag)
+        if self.negated:
+            tag = "-" + tag
+        return tag
 
 
 @dataclass
@@ -84,10 +107,16 @@ class TagQuery:
     def parse(query: str):
         terms = []
         for expr in query.split():
+            negated = False
             if expr[0] == "-":
-                terms.append(TagQueryTerm(tag=expr[1:], negated=True))
+                negated = True
+                expr = expr[1:]
+            if expr.startswith("face:"):
+                expr = expr[len("face:"):]
+                tag = TagQueryTermFace(face_cluster_id=expr)
             else:
-                terms.append(TagQueryTerm(tag=expr, negated=False))
+                tag = TagQueryTermTag(expr)
+            terms.append(TagQueryTerm(tag=tag, negated=negated))
         return TagQuery(terms)
 
 
@@ -129,7 +158,7 @@ class ImageRepo(Repo[Image]):
                 .limit(limit)
         )]
 
-    def list_by_tag_collected_at_desc(self, tag: str, offset: int, limit: int, descending: bool = True) -> List[Image]:
+    def list_by_tag_collected_at_desc(self, tag: TagQuery, offset: int, limit: int, descending: bool = True) -> List[Image]:
         order_by = self.idx_collected_at.c.collected_at
         if descending:
             order_by = order_by.desc()
@@ -142,17 +171,25 @@ class ImageRepo(Repo[Image]):
                 .limit(limit)
         )]
     
-    def count_by_tag(self, tag: str) -> int:
+    def count_by_tag(self, tag: TagQuery) -> int:
         return self.db.execute(
             sa.select(sa.func.count())
                 .select_from(self.table)
                 .where(*self._tag_condition(self.table, tag))
         ).first()[0]
 
-    def _tag_condition(self, table: sa.Table, tag: str):
+    def _tag_condition(self, table: sa.Table, tag: Union[str, TagQuery]):
         clauses = []
-        for term in TagQuery.parse(tag).terms:
-            q = sa.select(self.idx_tag_new.c.id).where(self.idx_tag_new.c.tag == term.tag)
+        if not isinstance(tag, TagQuery):
+            tag = TagQuery.parse(tag)
+        for term in tag.terms:
+            if isinstance(term.tag, TagQueryTermTag):
+                q = sa.select(self.idx_tag_new.c.id).where(self.idx_tag_new.c.tag == term.tag.tag)
+            elif isinstance(term.tag, TagQueryTermFace):
+                q = sa.select(FaceClusterRepo.idx_face_ref.c.image_id).where(FaceClusterRepo.idx_face_ref.c.id == term.tag.face_cluster_id)
+            else:
+                raise ValueError("unknown tag type")
+
             if term.negated:
                 clauses.append(table.c.id.not_in(q))
             else:

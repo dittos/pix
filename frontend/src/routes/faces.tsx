@@ -1,5 +1,6 @@
 import * as React from "react"
 import { Link, useLoaderData } from "react-router-dom"
+import { RootLink } from "../components/SearchLink"
 
 export const facesLoader = async () => {
   return fetch("/api/face-clusters")
@@ -45,7 +46,11 @@ export const FacesRoute = () => {
           <div className="col border-start p-3 vh-fill overflow-y-auto bg-body-tertiary">
             <h2>{cluster.label ?? cluster.id.substring(0, 8)}</h2>
             {cluster.wikidata_qid && <p><a href={`https://www.wikidata.org/entity/${cluster.wikidata_qid}`} target="_blank">{cluster.wikidata_qid}</a></p>}
-            <p className="mb-4">total {cluster.face_count} faces in images</p>
+            <p className="mb-4">
+              total {cluster.face_count} faces in images
+              &nbsp;
+              <RootLink search={{tag: `face:${cluster.id}`}}>View in search</RootLink>
+            </p>
 
             <SetLabelForm faceCluster={cluster} onUpdate={(c: any) => setCluster(c) /* TODO: update list */} />
 

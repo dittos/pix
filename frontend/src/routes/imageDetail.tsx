@@ -69,6 +69,7 @@ function DetailOverlaySidebar({
   })
   const [faces, setFaces] = React.useState([])
   const [autotags, setAutotags] = React.useState([])
+  const search = useExtractedSearchParams(extractRootSearchParams)
   const loadSimilarImages = (embedding: string) => {
     setSimilarImages({embedding, data: similarImages.data, isLoading: true})
     fetch(`/api/images/${encodeURIComponent(selectedImage.id)}/similar?embedding_type=${embedding}`)
@@ -143,12 +144,14 @@ function DetailOverlaySidebar({
       {(faces?.length ?? 0) > 0 && (<>
         <div className="mb-2 fw-bold">faces</div>
         {faces.filter((face: any) => face.face_cluster_id).map((face: any) =>
-          <div className="me-2 mb-2">
-            <img src={`/_images/faces/${face.local_filename}`} style={{height: 120}} />
-            <span className="ms-2">
-              {face.face_cluster_label ?? face.face_cluster_id?.substring(0, 8)}
-            </span>
-          </div>
+          <RootLink search={addTag(search, `face:${face.face_cluster_id}`)}>
+            <div className="me-2 mb-2">
+              <img src={`/_images/faces/${face.local_filename}`} style={{height: 120}} />
+              <span className="ms-2">
+                {face.face_cluster_label ?? face.face_cluster_id?.substring(0, 8)}
+              </span>
+            </div>
+          </RootLink>
         )}
         <div className="d-flex flex-wrap">
           {faces.filter((face: any) => !face.face_cluster_id).map((face: any) =>

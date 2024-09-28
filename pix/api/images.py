@@ -14,7 +14,7 @@ from pix.autotagger.custom import CustomAutotagger
 from pix.embedding_index import MultiEmbeddingIndexManager
 from pix.embeddings.csd import CsdEmbedding
 from pix.model.face_cluster import FaceClusterRepo
-from pix.model.image import Image, ImageRepo, ImageTag, Vector
+from pix.model.image import Image, ImageRepo, ImageTag, TagQuery, TagQueryTermFace, Vector
 
 
 images_router = APIRouter()
@@ -53,10 +53,17 @@ class ImageDto(BaseModel):
         return embedding_types
 
 
+class QueryFaceClusterDto(BaseModel):
+    raw_term: str
+    id: str
+    label: Union[str, None]
+
+
 class ListImagesResult(BaseModel):
     data: List[ImageDto]
     count: int
     has_next_page: bool
+    query_face_clusters: List[QueryFaceClusterDto]
 
 
 @images_router.get("/api/images")
@@ -65,17 +72,31 @@ def list_images(page: int = 1, tag: Optional[str] = None, sort: Optional[Literal
     offset = (page - 1) * limit
     image_repo = AppGraph.get_instance(ImageRepo)
     if tag:
+        tag = TagQuery.parse(tag)
         images = image_repo.list_by_tag_collected_at_desc(tag, offset, limit + 1, descending=sort != 'asc')
         count = image_repo.count_by_tag(tag)
+        query_face_clusters = []
+        face_cluster_repo = AppGraph.get_instance(FaceClusterRepo)
+        for term in tag.terms:
+            if isinstance(term.tag, TagQueryTermFace):
+                fc = face_cluster_repo.get(term.tag.face_cluster_id)
+                if not fc: continue
+                query_face_clusters.append(QueryFaceClusterDto(
+                    raw_term=str(term),
+                    id=fc.id,
+                    label=fc.label,
+                ))
     else:
         images = image_repo.list_by_collected_at_desc(offset, limit + 1, descending=sort != 'asc')
         count = image_repo.count()
+        query_face_clusters = []
     has_next_page = len(images) > limit
     images = images[:limit]
     return ListImagesResult(
         data=list(map(ImageDto.from_doc, images)),
         count=count,
         has_next_page=has_next_page,
+        query_face_clusters=query_face_clusters,
     )
 
 

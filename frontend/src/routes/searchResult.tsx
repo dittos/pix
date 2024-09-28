@@ -29,14 +29,33 @@ export function SearchResultRoute() {
   }, [images])
   const imageList = images.data
 
+  const queryTerms = []
+  if (search.tag) {
+    for (const term of search.tag.split(" ")) {
+      let label = term
+      const faceCluster = images.query_face_clusters.find((it: any) => it.raw_term === term)
+      if (faceCluster) {
+        if (faceCluster.label) {
+          label = faceCluster.label
+        } else {
+          label = `face:${faceCluster.id.substring(0, 8)}`
+        }
+        if (term[0] == '-') {
+          label = '-' + label
+        }
+      }
+      queryTerms.push(
+        <span className="border rounded p-2 me-2">{label} <RootLink search={removeTag(search, term)} className="link-underline-light">&times;</RootLink></span>
+      )
+    }
+  }
+
   return (
     <div className="d-flex">
       <div className="col py-2">
-      {search.tag && (
+      {queryTerms.length > 0 && (
         <div className="my-2">
-          {search.tag.split(" ").map(term => (
-            <span className="border rounded p-2 me-2">{term} <RootLink search={removeTag(search, term)} className="link-underline-light">&times;</RootLink></span>
-          ))}
+          {queryTerms}
         </div>
       )}
 

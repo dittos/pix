@@ -1,18 +1,25 @@
 import datetime
-from typing import List, Literal, Optional, Union
+from pathlib import Path
+from tempfile import NamedTemporaryFile
+from typing import Dict, List, Literal, Optional, Union
 from fastapi import APIRouter, HTTPException
 import numpy as np
 from pydantic import BaseModel
+import requests
 
 from pix.app import AppGraph
+from pix.autotagger.wd import WdAutotagger
 from pix.embeddings.clip import ClipEmbedding
 from pix.autotagger.custom import CustomAutotagger
 from pix.embedding_index import MultiEmbeddingIndexManager
+from pix.embeddings.csd import CsdEmbedding
 from pix.model.face_cluster import FaceClusterRepo
-from pix.model.image import Image, ImageRepo, ImageTag
+from pix.model.image import Image, ImageRepo, ImageTag, Vector
 
 
 images_router = APIRouter()
+
+EMBEDDING_TYPE_DEFAULT = "default"
 
 
 class ImageDto(BaseModel):
@@ -40,7 +47,7 @@ class ImageDto(BaseModel):
     def get_embedding_types(image: Image):
         embedding_types = []
         if image.embedding:
-            embedding_types.append("default")
+            embedding_types.append(EMBEDDING_TYPE_DEFAULT)
         if image.embeddings:
             embedding_types.extend(image.embeddings.keys())
         return embedding_types
@@ -92,6 +99,35 @@ def search_images(q: str, limit: int = 100):
     return result
 
 
+@images_router.get("/api/images/search/similar/compare")
+def search_similar_images_compare(url: str):
+    with NamedTemporaryFile('wb') as f:
+        with requests.get(url, stream=True) as resp:
+            resp.raise_for_status()
+            for chunk in resp.iter_content(chunk_size=1024 * 1024):
+                f.write(chunk)
+            f.flush()
+
+        embeddings = {}
+
+        for model_name, model_cls in (
+            ("clip", ClipEmbedding),
+            ("csd", CsdEmbedding),
+        ):
+            model = AppGraph.get_instance(model_cls)
+            model.load_model()
+            emb = model.extract(Path(f.name))
+            embeddings[model_name] = Vector.from_numpy(emb)
+
+        model = AppGraph.get_instance(WdAutotagger)
+        model.load_model()
+        emb = model.extract(Path(f.name)).embedding
+        if emb is not None:
+            embeddings[EMBEDDING_TYPE_DEFAULT] = Vector.from_numpy(emb)
+
+    return _search_similar_images(embeddings)
+
+
 @images_router.get("/api/images/{image_id}")
 def get_image(image_id: str):
     image_repo = AppGraph.get_instance(ImageRepo)
@@ -103,13 +139,13 @@ def get_image(image_id: str):
 
 
 @images_router.get("/api/images/{image_id}/similar")
-def list_similar_images(image_id: str, count: int = 10, embedding_type: str = "default"):
+def list_similar_images(image_id: str, count: int = 10, embedding_type: str = EMBEDDING_TYPE_DEFAULT):
     image_repo = AppGraph.get_instance(ImageRepo)
     image = image_repo.get(image_id)
     if image is None:
         raise HTTPException(404)
     
-    if embedding_type == "default":
+    if embedding_type == EMBEDDING_TYPE_DEFAULT:
         emb = image.embedding
     else:
         emb = image.embeddings.get(embedding_type)
@@ -139,22 +175,27 @@ def list_similar_images_compare(image_id: str):
     if image is None:
         raise HTTPException(404)
     
-    embedding_types = ImageDto.get_embedding_types(image)
+    embeddings = dict(image.embeddings)
+    if image.embedding:
+        embeddings[EMBEDDING_TYPE_DEFAULT] = image.embedding
+    return _search_similar_images(embeddings, image_id)
+
+
+def _search_similar_images(embeddings: Dict[str, Vector], image_id: Union[str, None] = None):
+    image_repo = AppGraph.get_instance(ImageRepo)
 
     results = []
     count = 5
     all_sim_images = {}
+    if image_id:
+        count += 1  # to exclude query image itself
 
-    for embedding_type in embedding_types:
+    for embedding_type in embeddings.keys():
         index = AppGraph.get_instance(MultiEmbeddingIndexManager).get_manager(embedding_type)
-
-        if embedding_type == "default":
-            emb = image.embedding
-        else:
-            emb = image.embeddings[embedding_type]
+        emb = embeddings[embedding_type]
 
         result = []
-        for sim_id, score in index.search(emb.to_numpy(), count + 1):
+        for sim_id, score in index.search(emb.to_numpy(), count):
             if sim_id == image_id: continue
             sim_image = all_sim_images.get(sim_id) or image_repo.get(sim_id)
             if sim_image is None: continue
@@ -173,16 +214,13 @@ def list_similar_images_compare(image_id: str):
     # extend result
     for result in results:
         embedding_type = result["type"]
-        if embedding_type == "default":
-            query_emb = image.embedding
-        else:
-            query_emb = image.embeddings[embedding_type]
+        query_emb = embeddings[embedding_type]
         query_emb = query_emb.to_numpy()
 
         missing_image_ids = all_sim_images.keys() - set(image["image"].id for image in result["images"])
         for missing_image_id in missing_image_ids:
             missing_image = all_sim_images[missing_image_id]
-            if embedding_type == "default":
+            if embedding_type == EMBEDDING_TYPE_DEFAULT:
                 emb = missing_image.embedding
             else:
                 emb = missing_image.embeddings[embedding_type]

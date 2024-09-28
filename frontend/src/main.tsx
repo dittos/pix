@@ -15,6 +15,7 @@ import isEqual from 'lodash/isEqual'
 import { RootRoute } from './routes/root'
 import { imageDetailLoader, ImageDetailRoute } from './routes/imageDetail'
 import { imageSimilarLoader, ImageSimilarRoute } from './routes/imageSimilar'
+import { similarLoader, SimilarRoute } from './routes/similar'
 
 const router = createBrowserRouter([
   {
@@ -56,6 +57,11 @@ const router = createBrowserRouter([
         path: "images/:imageId/similar",
         element: <ImageSimilarRoute />,
         loader: imageSimilarLoader,
+      },
+      {
+        path: "similar",
+        element: <SimilarRoute />,
+        loader: similarLoader,
       },
       {
         path: "faces",

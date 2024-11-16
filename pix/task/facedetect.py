@@ -39,6 +39,9 @@ def main(
 def save_face_images(image: Image, faces: List[Face], images_dir: Path, face_images_dir: Path):
     filenames = []
     with PILImage.open(images_dir / image.local_filename) as im:
+        if im.mode != 'RGB':
+            im = im.convert('RGB')
+            
         for i, face in enumerate(faces):
             filename = f"{image.id}.{i}.jpg"
             face_im = im.crop((face.x, face.y, face.x + face.width, face.y + face.height))

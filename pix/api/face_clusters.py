@@ -29,6 +29,7 @@ def list_face_clusters() -> List[FaceClusterDto]:
     image_repo = AppGraph.get_instance(ImageRepo)
     result = []
     for fc in fc_repo.all():
+        if not fc.faces: continue
         face = fc.faces[0]
         result.append(FaceClusterDto(
             id=fc.id,

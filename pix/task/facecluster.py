@@ -1,6 +1,6 @@
 from collections import defaultdict
 from dataclasses import dataclass
-from typing import List, Union
+from typing import Dict, List, Union
 import uuid
 import numpy as np
 from sklearn.cluster import DBSCAN
@@ -16,6 +16,13 @@ class Face:
     face_cluster_id: Union[str, None]
     embedding: np.array
 
+    def to_face_cluster_face(self):
+        return FaceClusterFace(
+            image_id=self.image_id,
+            index=self.index,
+            embedding_hash="",  # TODO
+        )
+
 
 def main(
     image_repo: ImageRepo,
@@ -30,13 +37,7 @@ def main(
             face_cluster_repo.update(FaceCluster(
                 id=fcid,
                 label=None,
-                faces=[
-                    FaceClusterFace(
-                        image_id=face.image_id,
-                        index=face.index,
-                        embedding_hash="",  # TODO
-                    ) for face in cluster
-                ],
+                faces=[face.to_face_cluster_face() for face in cluster],
             ))
         else:
             # existing cluster
@@ -49,19 +50,14 @@ def main(
                 else:
                     unassigned_faces.append(face)
             
+            primary_fcid, _ = max(face_by_existing_cluster.items(), key=lambda kv: len(kv[1]))
+
             if len(face_by_existing_cluster) > 1:
-                raise Exception("collision")
+                try_merge_cluster(face_cluster_repo, face_by_existing_cluster)
             
-            primary_fcid = next(iter(face_by_existing_cluster.keys()))
             primary_fc = face_cluster_repo.get(primary_fcid)
             for face in unassigned_faces:
-                primary_fc.faces.append(
-                    FaceClusterFace(
-                        image_id=face.image_id,
-                        index=face.index,
-                        embedding_hash="",  # TODO
-                    )
-                )
+                primary_fc.faces.append(face.to_face_cluster_face())
             face_cluster_repo.update(primary_fc)
 
 
@@ -100,3 +96,35 @@ def cluster_faces(faces: List[Face]) -> List[List[Face]]:
         clustered_faces[label].append(face)
     
     return list(clustered_faces.values())
+
+
+def try_merge_cluster(
+    face_cluster_repo: FaceClusterRepo,
+    face_by_existing_cluster: Dict[str, List[Face]],
+):
+    primary_fcid, _ = max(face_by_existing_cluster.items(), key=lambda kv: len(kv[1]))
+
+    for face_cluster_id, faces in face_by_existing_cluster.items():
+        print(f"{face_cluster_id}: {len(faces)} faces")
+    if input(f"Confirm merge into {primary_fcid} (y/n): ") != "y":
+        raise Exception("collision")
+    
+    with face_cluster_repo.db.transactional():
+        primary_fc = face_cluster_repo.get(primary_fcid)
+        other_face_clusters = [
+            face_cluster_repo.get(fcid)
+            for fcid in face_by_existing_cluster.keys()
+            if fcid != primary_fcid
+        ]
+        for fc in other_face_clusters:
+            if len(fc.faces) != len(face_by_existing_cluster[fc.id]):
+                raise Exception("cluster split")
+            primary_fc.faces.extend([
+                face.to_face_cluster_face()
+                for face in face_by_existing_cluster[fc.id]
+            ])
+
+            # TODO: actually delete rows
+            fc.faces = []
+            face_cluster_repo.update(fc)
+        face_cluster_repo.update(primary_fc)

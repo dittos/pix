@@ -86,7 +86,7 @@ def cluster_faces(faces: List[Face]) -> List[List[Face]]:
     def normalize(v):
         return v / np.linalg.norm(v)
 
-    clt = DBSCAN(min_samples=2, eps=0.95)
+    clt = DBSCAN(min_samples=2, eps=0.9)
     clt.fit([normalize(face.embedding) for face in faces])
 
     clustered_faces = defaultdict(list)

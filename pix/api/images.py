@@ -244,7 +244,8 @@ def _search_similar_images(embeddings: Dict[str, Vector], image_id: Union[str, N
             if embedding_type == EMBEDDING_TYPE_DEFAULT:
                 emb = missing_image.embedding
             else:
-                emb = missing_image.embeddings[embedding_type]
+                emb = missing_image.embeddings.get(embedding_type)
+            if emb is None: continue
             emb = emb.to_numpy()
 
             result["images"].append({

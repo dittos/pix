@@ -24,13 +24,13 @@ class EmbeddingIndex:
 
     def add(self, doc_id: str, emb: np.array):
         index = self._ensure_index(emb.shape[-1])
-        xb = np.stack([emb])
+        xb = np.stack([emb]).astype('float32')
         faiss.normalize_L2(xb)
         index.add(xb)
         self._doc_ids.append(doc_id)
     
     def search(self, emb: np.array, top_k: int) -> List[Tuple[str, float]]:
-        xb = np.stack([emb])
+        xb = np.stack([emb]).astype('float32')
         faiss.normalize_L2(xb)
         distances, indices = self._ensure_index(emb.shape[-1]).search(xb, top_k)
         return [(self._doc_ids[i], float(distance)) for i, distance in zip(indices[0], distances[0]) if i != -1]

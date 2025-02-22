@@ -32,6 +32,7 @@ def create_graph(debug: bool = False):
             "resnet": data_dir / "emb-index" / "resnet",
             "dinov2": data_dir / "emb-index" / "dinov2",
             "csd": data_dir / "emb-index" / "csd",
+            "siglip2": data_dir / "emb-index" / "siglip2",
         })
     
     graph.bind_factory(MultiEmbeddingIndexManager, embedding_index_factory)

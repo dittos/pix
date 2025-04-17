@@ -78,7 +78,7 @@ class TwitterPlaywrightDownloader(TwitterDownloader):
 
         next_cursor = None
         tweets = []
-        for instruction in body["data"]["user"]["result"]["timeline_v2"]["timeline"]["instructions"]:
+        for instruction in body["data"]["user"]["result"]["timeline"]["timeline"]["instructions"]:
             if instruction["type"] != "TimelineAddEntries": continue
             for entry in instruction["entries"]:
                 if entry["content"]["__typename"] == "TimelineTimelineCursor" and entry["content"]["cursorType"] == "Bottom":

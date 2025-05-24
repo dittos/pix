@@ -35,7 +35,7 @@ class TwitterPlaywrightDownloader(TwitterDownloader):
             return {
                 "name": k,
                 "value": v,
-                "domain": ".twitter.com",
+                "domain": ".x.com",
                 "path": "/",
                 "expires": time.time() + 60*60*24*365*10,
             }
@@ -98,7 +98,7 @@ class TwitterPlaywrightDownloader(TwitterDownloader):
                         ))
                     tweets.append(Tweet(
                         id=raw_tweet["rest_id"],
-                        username=raw_tweet["core"]["user_results"]["result"]["legacy"]["screen_name"],
+                        username=raw_tweet["core"]["user_results"]["result"]["core"]["screen_name"],
                         attachments=attachments,
                         raw_data=raw_tweet,
                         created_at=parsedate_to_datetime(raw_tweet["legacy"]["created_at"]),

@@ -26,8 +26,8 @@ class CsdEmbedding:
         model = CSD_CLIP()
         if has_batchnorms(model):
             model = nn.SyncBatchNorm.convert_sync_batchnorm(model)
-        
-        checkpoint = torch.load(self._model_path, map_location="cpu")
+
+        checkpoint = torch.load(self._model_path, map_location="cpu", weights_only=False)
         state_dict = convert_state_dict(checkpoint['model_state_dict'])
         msg = model.load_state_dict(state_dict, strict=False)
         # print(f"=> loaded checkpoint with msg {msg}")
